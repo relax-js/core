@@ -30,6 +30,7 @@ export interface ValidationContext {
 
 /**
  * Interface for custom validators.
+ * @internal
  */
 interface Validator {
     /**
@@ -40,6 +41,7 @@ interface Validator {
     validate(value: string, context: ValidationContext): void;
 }
 
+/** @internal */
 interface ValidatorRegistryEntry {
     validator: { new (): Validator };
     validInputTypes: string[];

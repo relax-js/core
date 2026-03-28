@@ -109,6 +109,7 @@ export class SortChangeEvent extends CustomEvent<SortColumn[]> {
 }
 
 
+/** @internal */
 type SortDirection = 'asc' | 'desc';
 export type SortColumn = { column: string; direction: SortDirection };
 

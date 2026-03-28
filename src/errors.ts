@@ -40,6 +40,7 @@ export class RelaxError extends Error {
     }
 }
 
+/** @internal */
 type ErrorHandler = (error: RelaxError, ctx: ErrorContext) => void;
 
 let handler: ErrorHandler | null = null;

@@ -14,12 +14,14 @@ type RawBinding =
     func: (context: Record<string, any>, component: Record<string, any>, element: HTMLElement) => void;
   };
 
+/** @internal */
 type ClickBinding = {
   path: number[];
   methodName: string;
   argTokens: ArgToken[];
 };
 
+/** @internal */
 type BoundBinding =
   | {
     type: 'text';

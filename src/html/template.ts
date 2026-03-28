@@ -93,6 +93,8 @@ export type TemplateValue = string | number | boolean | null | undefined;
  *     items: ['a', 'b', 'c'],
  *     isActive: true
  * };
+ *
+ * @internal
  */
 export interface Context {
     [key: string]: ContextValue;
@@ -108,6 +110,8 @@ export interface Context {
  *     add: (a, b) => a + b,
  *     greet: (name) => `Hello, ${name}!`
  * };
+ *
+ * @internal
  */
 export interface FunctionsContext {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

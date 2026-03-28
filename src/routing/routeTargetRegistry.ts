@@ -1,6 +1,7 @@
 import { reportError } from '../errors';
 import { NavigateRouteEvent } from './NavigateRouteEvent';
 
+/** @internal */
 type RouteTargetHandler = (evt: NavigateRouteEvent) => void;
 const targetHandlers = new Map<string | undefined, RouteTargetHandler>();
 const pendingEvents = new Map<string | undefined, NavigateRouteEvent>();

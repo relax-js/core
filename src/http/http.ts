@@ -130,6 +130,7 @@ export interface RequestOptions {
     body: unknown;
 }
 
+/** @internal */
 declare type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 let config: HttpOptions = {

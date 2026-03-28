@@ -1,3 +1,4 @@
+/** @internal */
 type WebComponentConstructor = new (...args: any[]) => HTMLElement;
 
 export enum GuardResult {
@@ -130,7 +131,7 @@ export interface RouteValue {
 
 export class RouteError extends Error {}
 export class RouteGuardError extends RouteError {
-    isGuard;
+    isGuard = true;
 }
 
 export interface NavigateOptions {

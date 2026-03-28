@@ -136,7 +136,7 @@ Relaxjs is a good choice when:
 
 ## Where Relaxjs Doesn't Fit
 
-Be honest with yourself - Relaxjs is not the right tool for everything:
+Relaxjs is not the right tool for everything:
 
 - **Large-scale apps with complex state** - Relaxjs has no reactive state management, no global store, no computed properties. If your UI has dozens of interdependent data flows, you'll be writing a lot of manual update logic.
 - **Server-side rendering / static site generation** - Relaxjs is client-only. If you need SEO, fast first-paint from the server, or pre-rendered pages, look at Next.js, Nuxt, or SvelteKit.
@@ -169,7 +169,7 @@ This isn't a framework - it's a library. Use what you need:
 - Need routing? Add `defineRoutes` and `r-route-target`.
 - Need everything? It's all there.
 
-No buy-in required. No migration path to worry about. Just Web Components and TypeScript.
+No buy-in required. No migration path to worry about. 
 
 ## Documentation
 

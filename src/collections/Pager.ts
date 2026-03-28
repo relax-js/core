@@ -1,10 +1,15 @@
-export class PageSelectedEvent extends CustomEvent<number> {
+export class PageSelectedEvent extends Event {
   constructor(public page: number) {
     super('pageselected', {
-      detail: page,
       bubbles: true,
       composed: true,
     });
+  }
+}
+
+declare global {
+  interface HTMLElementEventMap {
+    'pageselected': PageSelectedEvent;
   }
 }
 

@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "experimentalDecorators": false,
+    "emitDecoratorMetadata": false,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "lib": [
+      "es2020",
+      "DOM"
+    ],
+    "types": [
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "src/**/*"
+, "_alt/vitest.config.ts", "_alt/tsconfig.json", "_alt/tests", "_alt/src"  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

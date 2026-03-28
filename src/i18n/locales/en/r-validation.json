@@ -1,0 +1,5 @@
+{
+    "required": "This field is required.",
+    "range": "Number must be between {min} and {max}, was {actual}.",
+    "digits": "Please enter only digits."
+}

@@ -1,0 +1,6 @@
+{
+    "today": "idag",
+    "yesterday": "igår",
+    "daysAgo": "{count, plural, one {# dag sedan} other {# dagar sedan}}",
+    "pieces": "{count, plural, =0 {inga} one {en} other {# st}}"
+}

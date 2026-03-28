@@ -1,5 +1,5 @@
 {
-    "name": "relaxjs",
+    "name": "@relax.js/core",
     "version": "1.0.0",
     "description": "Ship faster with less code. Web Component library with routing, forms, DI, templating, and i18n. No virtual DOM, no build magic, no surprise re-renders.",
     "main": "./dist/index.js",
@@ -15,7 +15,7 @@
         "yalc:publish": "yalc publish && yalc push",
         "yalc:watch": "nodemon --ext ts,js,json --exec \"npm run yalc:publish\"",
         "bp": "npm run build && npm run yalc:publish",
-        "publish:npm": "npm run build && npm publish"
+        "publish:npm": "npm run build && npm publish --access public"
     },
     "keywords": [],
     "author": "",

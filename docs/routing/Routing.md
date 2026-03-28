@@ -16,7 +16,7 @@ The router itself only handles matching and navigation. Rendering is handled by 
 ## Quick Start
 
 ```typescript
-import { Route, defineRoutes, startRouting } from 'relaxjs/routing';
+import { Route, defineRoutes, startRouting } from '@relax.js/core/routing';
 
 const routes: Route[] = [
     { name: 'home', path: '/', componentTagName: 'home-page' },
@@ -92,7 +92,7 @@ The simplest way to navigate is with [`<r-link>`](RouteLink.md):
 Use `navigate()` for navigation from code:
 
 ```typescript
-import { navigate } from 'relaxjs/routing';
+import { navigate } from '@relax.js/core/routing';
 
 // By route name with parameters
 navigate('user', { params: { userName: 'john' } });
@@ -158,7 +158,7 @@ When navigating between layouts, the router redirects to the appropriate HTML fi
 Guards control access to routes:
 
 ```typescript
-import { RouteGuard, GuardResult, RouteMatchResult } from 'relaxjs/routing';
+import { RouteGuard, GuardResult, RouteMatchResult } from '@relax.js/core/routing';
 
 class AuthGuard implements RouteGuard {
     check(route: RouteMatchResult): GuardResult {
@@ -189,7 +189,7 @@ const routes: Route[] = [
 Navigation dispatches `NavigateRouteEvent` on `document`:
 
 ```typescript
-import { NavigateRouteEvent } from 'relaxjs/routing';
+import { NavigateRouteEvent } from '@relax.js/core/routing';
 
 document.addEventListener('rlx.navigateRoute', (e: NavigateRouteEvent) => {
     console.log('Route:', e.route.name);
@@ -205,7 +205,7 @@ This event is typed in `HTMLElementEventMap` for full TypeScript support.
 For advanced use cases, match routes without navigating:
 
 ```typescript
-import { matchRoute, findRouteByUrl, findRouteByName } from 'relaxjs/routing';
+import { matchRoute, findRouteByUrl, findRouteByName } from '@relax.js/core/routing';
 
 // Match by URL
 const result = matchRoute(routes, '/users/john');
@@ -228,7 +228,7 @@ Components rendered by `<r-route-target>` can receive route parameters in two wa
 Implement `loadRoute()` to run async setup before the component is added to the DOM. The component is not visible until `loadRoute()` completes.
 
 ```typescript
-import { LoadRoute, RouteData } from 'relaxjs/routing';
+import { LoadRoute, RouteData } from '@relax.js/core/routing';
 
 class OrderDetail extends HTMLElement implements LoadRoute<{ orderId: number }> {
     private order: Order;
@@ -248,7 +248,7 @@ class OrderDetail extends HTMLElement implements LoadRoute<{ orderId: number }> 
 Implement `Routable` to receive parameters as a typed property. The property is optional since it's set by the router after construction.
 
 ```typescript
-import { Routable } from 'relaxjs/routing';
+import { Routable } from '@relax.js/core/routing';
 
 class UserProfile extends HTMLElement implements Routable<{ userName: string }> {
     routeData?: { userName: string };
@@ -262,7 +262,7 @@ Both can be combined. `loadRoute()` runs first, then `routeData` is assigned.
 ## Error Handling
 
 ```typescript
-import { RouteError, RouteGuardError } from 'relaxjs/routing';
+import { RouteError, RouteGuardError } from '@relax.js/core/routing';
 
 try {
     navigate('unknown-route');

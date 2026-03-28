@@ -31,7 +31,7 @@ Several pipes are locale-aware and use the [i18n](i18n/i18n.md) system:
 To use localized pipes:
 
 ```typescript
-import { setLocale, loadNamespace } from 'relaxjs/i18n';
+import { setLocale, loadNamespace } from '@relax.js/core/i18n';
 
 // Set locale and load pipe translations
 await setLocale('sv');
@@ -71,7 +71,7 @@ To add a new locale, create `src/i18n/locales/{locale}/r-pipes.json` with the tr
 ## Programmatic Usage
 
 ```typescript
-import { applyPipes, defaultPipes, createPipeRegistry } from 'relaxjs/utils';
+import { applyPipes, defaultPipes, createPipeRegistry } from '@relax.js/core/utils';
 
 // Apply pipes to a value
 const result = applyPipes('hello world', ['uppercase', 'shorten:8']);
@@ -151,8 +151,8 @@ Arguments are passed after a colon:
 Pass a pipe registry to `compileTemplate`:
 
 ```typescript
-import { compileTemplate } from 'relaxjs/html';
-import { createPipeRegistry } from 'relaxjs/utils';
+import { compileTemplate } from '@relax.js/core/html';
+import { createPipeRegistry } from '@relax.js/core/utils';
 
 const pipeRegistry = createPipeRegistry();
 const { content, render } = compileTemplate(
@@ -204,7 +204,7 @@ import {
     keysPipe,
     defaultPipe,
     ternaryPipe
-} from 'relaxjs/utils';
+} from '@relax.js/core/utils';
 
 const result = uppercasePipe('hello');  // 'HELLO'
 const formatted = currencyPipe(1234.56);  // '$1,234.56' (depends on locale)

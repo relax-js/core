@@ -15,7 +15,7 @@ This module provides HTTP, WebSocket, and Server-Sent Events clients for network
 ### HTTP Requests
 
 ```typescript
-import { configure, get, post } from 'relaxjs/http';
+import { configure, get, post } from '@relax.js/core/http';
 
 configure({ baseUrl: '/api/v1' });
 
@@ -32,7 +32,7 @@ const result = await post('/users', JSON.stringify({ name: 'John' }));
 ### WebSocket Messaging
 
 ```typescript
-import { WebSocketClient } from 'relaxjs/http';
+import { WebSocketClient } from '@relax.js/core/http';
 
 const ws = new WebSocketClient<Message>('wss://api.example.com');
 ws.connect();
@@ -57,7 +57,7 @@ ws.disconnect();
 ### Server-Sent Events
 
 ```typescript
-import { SSEClient } from 'relaxjs/http';
+import { SSEClient } from '@relax.js/core/http';
 
 const sse = new SSEClient('/api/events', {
     eventTypes: ['user-updated', 'notification']

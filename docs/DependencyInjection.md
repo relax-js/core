@@ -13,7 +13,7 @@ The DI system provides:
 ## Quick Start
 
 ```typescript
-import { ContainerService, container } from 'relaxjs/di';
+import { ContainerService, container } from '@relax.js/core/di';
 
 @ContainerService()
 class LoggerService {
@@ -52,7 +52,7 @@ class ApiClient {
 For cases where you can't use decorators (e.g. registering an existing instance):
 
 ```typescript
-import { serviceCollection } from 'relaxjs/di';
+import { serviceCollection } from '@relax.js/core/di';
 
 // Register with existing instance
 const config = { apiUrl: '/api' };
@@ -121,7 +121,7 @@ class UserRepository {
 The `@Inject` decorator resolves a dependency and assigns it to a class field:
 
 ```typescript
-import { ContainerService, Inject } from 'relaxjs/di';
+import { ContainerService, Inject } from '@relax.js/core/di';
 
 @ContainerService({ inject: [] })
 class OrderService {
@@ -217,7 +217,7 @@ Thrown during `register()` or `registerByType()` to catch configuration mistakes
 ### Suppressing Errors
 
 ```typescript
-import { onError } from 'relaxjs/utils';
+import { onError } from '@relax.js/core/utils';
 
 onError((error, ctx) => {
     if (error.context.service === 'OptionalPlugin') {

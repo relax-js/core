@@ -14,7 +14,7 @@ Unlike modern SPA frameworks, Relaxjs takes an explicit approach:
 ## Core Modules
 
 ```
-relaxjs/
+@relax.js/core
 ├── Routing          # SPA navigation with guards and layouts
 ├── Forms            # Data binding, validation, type conversion
 ├── DI               # Dependency injection container
@@ -29,9 +29,9 @@ relaxjs/
 ### Application Startup
 
 ```typescript
-import { defineRoutes, startRouting } from 'relaxjs/routing';
-import { setLocale } from 'relaxjs/i18n';
-import { serviceCollection } from 'relaxjs/di';
+import { defineRoutes, startRouting } from '@relax.js/core/routing';
+import { setLocale } from '@relax.js/core/i18n';
+import { serviceCollection } from '@relax.js/core/di';
 
 class Application extends HTMLElement {
     async connectedCallback() {

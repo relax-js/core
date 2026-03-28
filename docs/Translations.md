@@ -24,7 +24,7 @@ This library helps you internationalize (i18n) your application using namespace-
 Import the library functions in your code:
 
 ```ts
-import { setLocale, loadNamespace, t, getCurrentLocale } from 'relaxjs/i18n';
+import { setLocale, loadNamespace, t, getCurrentLocale } from '@relax.js/core/i18n';
 ```
 
 ---
@@ -36,7 +36,7 @@ When you first start your application, set the locale and the library will autom
 **Example:**
 
 ```ts
-import { setLocale } from 'relaxjs/i18n';
+import { setLocale } from '@relax.js/core/i18n';
 
 // Set locale at application startup
 await setLocale('en');
@@ -57,7 +57,7 @@ Use `setLocale(locale: string)` to switch or explicitly set the user's locale. T
 **Example:**
 
 ```ts
-import { setLocale } from 'relaxjs/i18n';
+import { setLocale } from '@relax.js/core/i18n';
 
 async function switchToSwedish() {
   await setLocale('sv');
@@ -81,7 +81,7 @@ t(fullKey: string, values?: Record<string, any>): string;
 
 **Basic Example:**
 ```ts
-import { t } from 'relaxjs/i18n';
+import { t } from '@relax.js/core/i18n';
 
 console.log(t("welcome_message"));
 // Uses common:welcome_message
@@ -105,7 +105,7 @@ If your translation string includes placeholders, provide dynamic values in the 
 }
 
 // In your code:
-import { t } from 'relaxjs/i18n';
+import { t } from '@relax.js/core/i18n';
 
 console.log(t("greeting", { name: "Alice" }));
 // Output: "Hello, Alice!"
@@ -136,7 +136,7 @@ Translations are organized into namespaces. Each namespace corresponds to a JSON
 The `common` namespace is loaded automatically when setting the locale. Load additional namespaces on demand:
 
 ```ts
-import { loadNamespace, t } from 'relaxjs/i18n';
+import { loadNamespace, t } from '@relax.js/core/i18n';
 
 // Load the shop namespace before using its translations
 await loadNamespace('shop');

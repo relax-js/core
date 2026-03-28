@@ -1,13 +1,13 @@
 # Utilities
 
-Small helper functions and data structures exported from `relaxjs/utils`.
+Small helper functions and data structures exported from `@relax.js/core/utils`.
 
 ## generateSequentialId
 
 Generates compact, time-ordered unique identifiers. IDs sort lexicographically in creation order, making them useful for ordered collections and databases.
 
 ```typescript
-import { generateSequentialId } from 'relaxjs/utils';
+import { generateSequentialId } from '@relax.js/core/utils';
 
 const id = generateSequentialId(1);
 // Returns a Base36 string like 'k2j8m3n5p'
@@ -58,7 +58,7 @@ console.log(id1 < id2); // true
 Safely navigates nested object properties using a path array. Returns `undefined` if any segment is null or missing (no exceptions thrown).
 
 ```typescript
-import { resolveValue } from 'relaxjs/utils';
+import { resolveValue } from '@relax.js/core/utils';
 
 const user = { address: { city: 'Stockholm' } };
 
@@ -86,7 +86,7 @@ const avatar = resolveValue(path, context);
 A doubly-linked list with O(1) insertion and removal at both ends.
 
 ```typescript
-import { LinkedList } from 'relaxjs/utils';
+import { LinkedList } from '@relax.js/core/utils';
 
 const list = new LinkedList<string>();
 

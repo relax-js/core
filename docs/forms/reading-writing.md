@@ -7,7 +7,7 @@ Functions for reading and writing form data with automatic type conversion.
 Maps form field values to a class instance's properties with type conversion. Provides full type safety by populating an existing typed object.
 
 ```typescript
-import { mapFormToClass } from 'relaxjs/forms';
+import { mapFormToClass } from '@relax.js/core/forms';
 
 class UserDTO {
     name: string = '';
@@ -69,7 +69,7 @@ const product = mapFormToClass(form, new ProductDTO());
 Reads all form data into a plain object with automatic type conversion. Use when you don't need strict typing.
 
 ```typescript
-import { readData } from 'relaxjs/forms';
+import { readData } from '@relax.js/core/forms';
 
 const form = document.querySelector('form');
 const data = readData(form);
@@ -141,7 +141,7 @@ const data = readData(form);
 Populates form fields from a data object using the `name` attribute.
 
 ```typescript
-import { setFormData } from 'relaxjs/forms';
+import { setFormData } from '@relax.js/core/forms';
 
 const form = document.querySelector('form');
 const data = { name: 'John', email: 'john@example.com' };

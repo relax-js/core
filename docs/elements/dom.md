@@ -9,7 +9,7 @@ Finds exactly one element matching a selector. Throws if no match is found.
 When the selector starts with `#`, it tries matching by `id` first, then falls back to the `name` attribute. This makes it convenient for form fields where `name` is more common than `id`.
 
 ```typescript
-import { selectOne } from 'relaxjs/elements';
+import { selectOne } from '@relax.js/core/elements';
 
 // Standard CSS selector
 const container = selectOne('.main-content');
@@ -33,7 +33,7 @@ input.valueAsNumber; // OK, typed as HTMLInputElement
 Sets a validation error message on a form field. Supports both native form elements (`<input>`, `<select>`, `<textarea>`, `<button>`) and form-associated custom elements that use `ElementInternals`. Throws if the element is not a form field.
 
 ```typescript
-import { formError } from 'relaxjs/elements';
+import { formError } from '@relax.js/core/elements';
 
 // Set an error
 formError('#email', 'Please enter a valid email');
@@ -62,7 +62,7 @@ Throws an error if the matched element is neither a native form field nor a form
 Finds the closest parent element of a specific Web Component type. Traverses up the DOM tree looking for an ancestor matching the given constructor.
 
 ```typescript
-import { getParentComponent } from 'relaxjs/elements';
+import { getParentComponent } from '@relax.js/core/elements';
 ```
 
 ### Finding a Parent Container

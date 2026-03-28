@@ -6,7 +6,7 @@ Relaxjs is designed for gradual adoption. Start with full control using vanilla 
 ## Installation
 
 ```
-npm i -S relaxjs
+npm i -S @relax.js/core
 ```
 
 ---
@@ -42,7 +42,7 @@ You're in complete control. Relaxjs components like `<r-input>`, `<r-button>`, e
 When your components get complex, use `html()` for reactive templates and data binding.
 
 ```ts
-import { html } from 'relaxjs/html';
+import { html } from '@relax.js/core/html';
 
 export class UserCard extends HTMLElement {
     private user = { name: 'Alice', role: 'Admin' };
@@ -74,7 +74,7 @@ Still no routing. You control navigation yourself.
 Swap content programmatically while staying in full control.
 
 ```ts
-import { html } from 'relaxjs/html';
+import { html } from '@relax.js/core/html';
 
 export class AppShell extends HTMLElement {
     private main!: HTMLElement;
@@ -109,7 +109,7 @@ customElements.define('app-shell', AppShell);
 When your app has multiple pages and you want URL-based navigation, add routing.
 
 ```ts
-import { Route, defineRoutes, startRouting } from 'relaxjs/routing';
+import { Route, defineRoutes, startRouting } from '@relax.js/core/routing';
 
 const routes: Route[] = [
     { name: 'home', path: '/', componentTagName: 'home-page' },
@@ -142,7 +142,7 @@ The `<r-link>` component handles navigation by route name. Use `param-*` attribu
 Use `navigate()` for code-driven navigation.
 
 ```ts
-import { navigate } from 'relaxjs/routing';
+import { navigate } from '@relax.js/core/routing';
 
 // Navigate by route name with params
 navigate('profile', { params: { id: '123' } });
@@ -159,7 +159,7 @@ Protect routes with guards when you need authentication or authorization.
 
 ```ts
 // guards.ts
-import { RouteGuard, RouteMatchResult, GuardResult, navigate } from 'relaxjs/routing';
+import { RouteGuard, RouteMatchResult, GuardResult, navigate } from '@relax.js/core/routing';
 
 export class AuthGuard implements RouteGuard {
     check(route: RouteMatchResult): GuardResult {
@@ -175,7 +175,7 @@ export class AuthGuard implements RouteGuard {
 
 ```ts
 // app.ts
-import { Route, defineRoutes } from 'relaxjs/routing';
+import { Route, defineRoutes } from '@relax.js/core/routing';
 import { AuthGuard } from './guards';
 
 const authGuard = new AuthGuard();

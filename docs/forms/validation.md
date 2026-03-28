@@ -5,7 +5,7 @@ The `FormValidator` class provides form validation with HTML5 integration, error
 ## Basic Usage
 
 ```typescript
-import { FormValidator } from 'relaxjs/forms';
+import { FormValidator } from '@relax.js/core/forms';
 
 const form = document.querySelector('form');
 const validator = new FormValidator(form, {
@@ -190,7 +190,7 @@ Validates that the value contains only digits (0-9).
 Register your own validators using the `@RegisterValidator` decorator. The class must implement a `validate(value, context)` method.
 
 ```typescript
-import { RegisterValidator, ValidationContext } from 'relaxjs/forms';
+import { RegisterValidator, ValidationContext } from '@relax.js/core/forms';
 
 @RegisterValidator('email')
 class EmailValidation {
@@ -232,7 +232,7 @@ interface ValidationContext {
 Look up registered validators programmatically:
 
 ```typescript
-import { getValidator } from 'relaxjs/forms';
+import { getValidator } from '@relax.js/core/forms';
 
 const entry = getValidator('required');
 // entry.validator is the class constructor

@@ -5,7 +5,7 @@ SSE client that dispatches received server events as DOM events.
 ## Quick Start
 
 ```typescript
-import { SSEClient, SSEDataEvent } from 'relaxjs/http';
+import { SSEClient, SSEDataEvent } from '@relax.js/core/http';
 
 const sse = new SSEClient('/api/events', {
     eventTypes: ['user-updated', 'notification']
@@ -180,5 +180,5 @@ import {
     SSEOptions,
     SSEDataEvent,
     SSEEventFactory
-} from 'relaxjs/http';
+} from '@relax.js/core/http';
 ```

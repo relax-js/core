@@ -17,7 +17,7 @@ A full-featured template engine for web components. Compiles HTML templates with
 ## Basic Usage
 
 ```typescript
-import { compileTemplate } from 'relaxjs/html';
+import { compileTemplate } from '@relax.js/core/html';
 
 // 1. Compile the template
 const { content, render } = compileTemplate(`
@@ -96,8 +96,8 @@ Transform values using pipe functions:
 See [Pipes](../Pipes.md) for the full list of built-in pipes.
 
 ```typescript
-import { compileTemplate } from 'relaxjs/html';
-import { createPipeRegistry } from 'relaxjs/utils';
+import { compileTemplate } from '@relax.js/core/html';
+import { createPipeRegistry } from '@relax.js/core/utils';
 
 const pipeRegistry = createPipeRegistry();
 const { content, render } = compileTemplate(
@@ -276,8 +276,8 @@ Loop with array indexing:
 ## Configuration
 
 ```typescript
-import { compileTemplate, EngineConfig } from 'relaxjs/html';
-import { createPipeRegistry } from 'relaxjs/utils';
+import { compileTemplate, EngineConfig } from '@relax.js/core/html';
+import { createPipeRegistry } from '@relax.js/core/utils';
 
 const config: EngineConfig = {
     strict: true,
@@ -380,8 +380,8 @@ customElements.define('user-card', UserCard);
 ## Complete Example
 
 ```typescript
-import { compileTemplate } from 'relaxjs/html';
-import { createPipeRegistry } from 'relaxjs/utils';
+import { compileTemplate } from '@relax.js/core/html';
+import { createPipeRegistry } from '@relax.js/core/utils';
 
 const pipeRegistry = createPipeRegistry();
 

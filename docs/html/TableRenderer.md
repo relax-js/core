@@ -7,7 +7,7 @@
 ### Minimal Web Component Setup
 
 ```ts
-import { TableRenderer } from 'relaxjs/html';
+import { TableRenderer } from '@relax.js/core/html';
 
 class UserTable extends HTMLElement {
     private renderer!: TableRenderer;
@@ -132,7 +132,7 @@ this.renderer.render([
 ### Setup
 
 ```ts
-import { TableSorter } from 'relaxjs/html';
+import { TableSorter } from '@relax.js/core/html';
 
 class UserTable extends HTMLElement {
     connectedCallback() {
@@ -165,7 +165,7 @@ class UserTable extends HTMLElement {
 `TableSorter` dispatches a `SortChangeEvent` on the component:
 
 ```ts
-import { SortChangeEvent, SortColumn } from 'relaxjs/html';
+import { SortChangeEvent, SortColumn } from '@relax.js/core/html';
 
 this.addEventListener('sortchange', (e: SortChangeEvent) => {
     const sortColumns: SortColumn[] = e.detail;
@@ -192,7 +192,7 @@ type SortColumn = { column: string; direction: 'asc' | 'desc' };
 ### Setup
 
 ```ts
-import { Pager, PageSelectedEvent } from 'relaxjs/html';
+import { Pager, PageSelectedEvent } from '@relax.js/core/html';
 
 class UserTable extends HTMLElement {
     private pager!: Pager;
@@ -236,7 +236,7 @@ this.pager.update(newTotalCount);
 ### Combined Example: TableRenderer + TableSorter + Pager
 
 ```ts
-import { TableRenderer, TableSorter, Pager } from 'relaxjs/html';
+import { TableRenderer, TableSorter, Pager } from '@relax.js/core/html';
 
 class ProductList extends HTMLElement {
     private renderer!: TableRenderer;

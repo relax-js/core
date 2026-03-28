@@ -4,6 +4,12 @@
 
 Web Component library with routing, forms, DI, templating, and i18n. No virtual DOM, no build magic, no surprise re-renders.
 
+- ~20KB gzipped, one dependency
+- Native Web Components, zero vendor lock-in
+- Use only what you need: forms, routing, DI, i18n are all independent
+- No build step required, no compiler, no CLI
+- Standard HTML, standard DOM, standard async/await
+
 ## Why Relaxjs?
 
 Modern frameworks solve problems you might not have. Relaxjs takes the opposite approach:
@@ -39,7 +45,7 @@ You write less boilerplate while keeping full control.
 ## Installation
 
 ```bash
-npm install relaxjs
+npm install @relax.js/core
 ```
 
 ## Quick Examples
@@ -49,7 +55,7 @@ npm install relaxjs
 Read and write form data with automatic type conversion:
 
 ```typescript
-import { setFormData, readData } from 'relaxjs';
+import { setFormData, readData } from '@relax.js/core';
 
 // Populate a form from an object
 const user = { name: 'John', email: 'john@example.com', age: 30 };
@@ -69,7 +75,7 @@ Supports nested objects (`user.address.city`), arrays (`tags[]`), and automatic 
 Define routes and let the router handle navigation:
 
 ```typescript
-import { defineRoutes, navigate, startRouting } from 'relaxjs';
+import { defineRoutes, navigate, startRouting } from '@relax.js/core';
 
 defineRoutes([
     { name: 'home', path: '/', componentTagName: 'app-home' },
@@ -94,7 +100,7 @@ navigate('user', { params: { id: '123' } });
 HTML5-style validation with custom rules and error summaries:
 
 ```typescript
-import { FormValidator } from 'relaxjs';
+import { FormValidator } from '@relax.js/core';
 
 const validator = new FormValidator(form, {
     useSummary: true,
@@ -185,4 +191,4 @@ Works in all browsers that support Web Components (Chrome, Firefox, Safari, Edge
 
 ## License
 
-ISC
+MIT

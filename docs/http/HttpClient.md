@@ -5,7 +5,7 @@ Type-safe HTTP module built on fetch() with automatic JWT handling.
 ## Quick Start
 
 ```typescript
-import { configure, get, post } from 'relaxjs/http';
+import { configure, get, post } from '@relax.js/core/http';
 
 configure({ baseUrl: '/api/v1' });
 
@@ -22,7 +22,7 @@ const result = await post('/users', JSON.stringify({ name: 'John' }));
 Call `configure()` once at app startup to set defaults for all requests:
 
 ```typescript
-import { configure } from 'relaxjs/http';
+import { configure } from '@relax.js/core/http';
 
 configure({
     baseUrl: '/api/v1',
@@ -72,7 +72,7 @@ All methods are standalone functions. They return `Promise<HttpResponse>`.
 ### GET
 
 ```typescript
-import { get } from 'relaxjs/http';
+import { get } from '@relax.js/core/http';
 
 // Simple GET
 const response = await get('/users');
@@ -88,7 +88,7 @@ const filtered = await get('/users', {
 ### POST
 
 ```typescript
-import { post } from 'relaxjs/http';
+import { post } from '@relax.js/core/http';
 
 const user = { name: 'John', email: 'john@example.com' };
 const response = await post('/users', JSON.stringify(user));
@@ -102,7 +102,7 @@ if (response.success) {
 ### PUT
 
 ```typescript
-import { put } from 'relaxjs/http';
+import { put } from '@relax.js/core/http';
 
 const updates = { name: 'John Updated' };
 const response = await put('/users/123', JSON.stringify(updates));
@@ -113,7 +113,7 @@ const response = await put('/users/123', JSON.stringify(updates));
 The function is named `del` (not `delete`, which is a reserved word):
 
 ```typescript
-import { del } from 'relaxjs/http';
+import { del } from '@relax.js/core/http';
 
 const response = await del('/users/123');
 if (response.success) {
@@ -126,7 +126,7 @@ if (response.success) {
 Use `request()` for full control over the request:
 
 ```typescript
-import { request } from 'relaxjs/http';
+import { request } from '@relax.js/core/http';
 
 const response = await request('/users', {
     method: 'POST',
@@ -218,7 +218,7 @@ configure({
 ## Error Handling
 
 ```typescript
-import { get, HttpError } from 'relaxjs/http';
+import { get, HttpError } from '@relax.js/core/http';
 
 try {
     const response = await get('/users/999');
@@ -242,7 +242,7 @@ try {
 Replace the global fetch implementation for unit tests:
 
 ```typescript
-import { setFetch, get, configure } from 'relaxjs/http';
+import { setFetch, get, configure } from '@relax.js/core/http';
 
 // Mock fetch for tests
 setFetch(async (url, options) => {
@@ -266,7 +266,7 @@ setFetch();
 Type-safe WebSocket client with automatic reconnection and message queuing.
 
 ```typescript
-import { WebSocketClient } from 'relaxjs/http';
+import { WebSocketClient } from '@relax.js/core/http';
 
 interface ChatMessage {
     user: string;
@@ -387,7 +387,7 @@ try {
 Pass a factory function instead of a URL:
 
 ```typescript
-import { WebSocketClient, WebSocketAbstraction, WebSocketFactory } from 'relaxjs/http';
+import { WebSocketClient, WebSocketAbstraction, WebSocketFactory } from '@relax.js/core/http';
 
 const mockSocket: WebSocketAbstraction = {
     onopen: null,
@@ -446,7 +446,7 @@ import {
     HttpResponse,
     HttpError,
     RequestOptions
-} from 'relaxjs/http';
+} from '@relax.js/core/http';
 
 // WebSocket
 import {
@@ -455,5 +455,5 @@ import {
     WebSocketCodec,
     WebSocketAbstraction,
     WebSocketFactory
-} from 'relaxjs/http';
+} from '@relax.js/core/http';
 ```

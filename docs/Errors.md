@@ -9,7 +9,7 @@ By default, Relaxjs throws a `RelaxError` when something goes wrong internally. 
 ## Quick Start
 
 ```typescript
-import { onError } from 'relaxjs/utils';
+import { onError } from '@relax.js/core/utils';
 
 onError((error, ctx) => {
     console.log(error.message);
@@ -53,7 +53,7 @@ If the handler does not call `suppress()`, the `RelaxError` is thrown after the 
 Application code can route errors through the same handler using `reportError()`. It returns the `RelaxError` to throw, or `null` if the handler suppressed it:
 
 ```typescript
-import { reportError } from 'relaxjs/utils';
+import { reportError } from '@relax.js/core/utils';
 
 const error = reportError('Payment processing failed', {
     orderId: 123,

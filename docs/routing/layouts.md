@@ -27,7 +27,7 @@ Each layout is a separate static HTML file. When navigating to a route with a di
 ## Route Configuration
 
 ```ts
-import { Route, defineRoutes, startRouting } from 'relaxjs/routing';
+import { Route, defineRoutes, startRouting } from '@relax.js/core/routing';
 
 const routes: Route[] = [
     // Uses public.html
@@ -118,7 +118,7 @@ Since all layout files need the same routes, keep route configuration in a share
 
 ```ts
 // routes.ts
-import { Route } from 'relaxjs/routing';
+import { Route } from '@relax.js/core/routing';
 
 export const routes: Route[] = [
     { name: 'login', path: '/login', componentTagName: 'login-page', layout: 'public' },
@@ -129,7 +129,7 @@ export const routes: Route[] = [
 
 ```ts
 // app.ts (imported by all layout HTML files)
-import { defineRoutes, startRouting } from 'relaxjs/routing';
+import { defineRoutes, startRouting } from '@relax.js/core/routing';
 import { routes } from './routes';
 
 defineRoutes(routes);

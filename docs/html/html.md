@@ -5,7 +5,7 @@ A lightweight HTML template engine with update capabilities. Creates templates t
 ## Usage
 
 ```typescript
-import { html } from 'relaxjs/html';
+import { html } from '@relax.js/core/html';
 
 // Create a template
 const userCard = html`

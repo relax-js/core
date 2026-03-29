@@ -165,11 +165,11 @@ The `html` template is optimized for simple, updateable templates. For advanced 
 
 | Feature | `html` | `compileTemplate` |
 |---------|--------|-------------------|
-| Mustache bindings | ✅ | ✅ |
-| Event handlers | ✅ | ❌ |
-| In-place updates | ✅ | ✅ |
-| Nested paths (`user.name`) | ❌ | ✅ |
-| Loops (`loop="item in items"`) | ❌ | ✅ |
-| Conditionals (`if`, `unless`) | ❌ | ✅ |
-| Pipe transformations | ❌ | ✅ |
-| Function calls with args | ✅ (via `\|`) | ✅ |
+| Mustache bindings | Yes | Yes |
+| Event handlers | Yes | No |
+| In-place updates | Yes | Yes |
+| Nested paths (`user.name`) | No | Yes |
+| Loops (`loop="item in items"`) | No | Yes |
+| Conditionals (`if`, `unless`) | No | Yes |
+| Pipe transformations | No | Yes |
+| Function calls with args | Yes (via `\|`) | Yes |

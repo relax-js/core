@@ -2,7 +2,7 @@
 
 `TableRenderer` is a small helper class that renders table rows inside Web Components using a `<template>` and an array of data. It supports data binding, row updates, and declarative button handlers that call methods on your Web Component.
 
-## ✅ 1. Getting Started
+## 1. Getting Started
 
 ### Minimal Web Component Setup
 
@@ -49,7 +49,7 @@ customElements.define('user-table', UserTable);
 - Fills in `<td data-field="name">` using data values
 - Associates each row with its data via the `id` field
 
-## 🛠 2. Updating a Row
+## 2. Updating a Row
 
 Use `update()` to refresh a single row without re-rendering everything:
 
@@ -59,7 +59,7 @@ this.renderer.update({ id: 2, name: 'Bob Smith', role: 'Moderator' });
 
 If a matching row exists (`idColumn` = `"id"`), it will update in-place. If not, a new row is added.
 
-## 🎯 3. Button Event Binding
+## 3. Button Event Binding
 
 Add buttons in the template using `onclick="methodName"`.
 
@@ -90,7 +90,7 @@ edit(data: any, event: MouseEvent) {
 - It receives the row's `data` as the first argument
 - The second argument is the `MouseEvent`
 
-## 📦 4. Using Arguments in Handlers
+## 4. Using Arguments in Handlers
 
 You can call methods with literal arguments. The remaining arguments are always `data` and `event`.
 
@@ -112,7 +112,7 @@ remove(mode: string, data: any, event: MouseEvent) {
 - The string `'soft'` is passed as the first argument
 - `data` and `event` are appended automatically
 
-## 🧼 5. Re-rendering Safely
+## 5. Re-rendering Safely
 
 The `.render()` method replaces all rows and cleans up memory:
 

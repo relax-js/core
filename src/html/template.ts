@@ -409,9 +409,9 @@ interface LoopSlot {
  * Rendering order for loop items:
  *
  * 1. Clone from template (detached, attributes still contain mustache)
- * 2. Compile the clone — creates setters for mustache in attributes/text
- * 3. Render — resolves mustache against the iteration context
- * 4. Insert into DOM — custom elements upgrade with final attribute values
+ * 2. Compile the clone, creating setters for mustache in attributes/text
+ * 3. Render, resolving mustache against the iteration context
+ * 4. Insert into DOM. Custom elements upgrade with final attribute values
  *
  * Steps 2-3 MUST happen before step 4. If we insert first, the browser
  * upgrades custom elements immediately (connectedCallback fires) while
@@ -475,10 +475,10 @@ function loopPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | v
             const newSlots: LoopSlot[] = [];
 
             for (let i = reuseCount; i < items.length; i++) {
-                // 1. Clone (detached — no connectedCallback yet)
+                // 1. Clone (detached, no connectedCallback yet)
                 const instance = tpl.cloneNode(true) as Element;
 
-                // 2-3. Compile + render while detached — resolves mustache
+                // 2-3. Compile + render while detached; resolves mustache
                 const childRenderer = compileDOM(instance, config);
                 childRenderer({ ...ctx, [alias]: items[i] }, fns);
 
@@ -486,7 +486,7 @@ function loopPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | v
                 newSlots.push({ element: instance, renderer: childRenderer });
             }
 
-            // 4. Batch-insert into live DOM — custom elements upgrade with final values
+            // 4. Batch-insert into live DOM. Custom elements upgrade with final values
             const insertAfter = reuseCount > 0
                 ? slots[reuseCount - 1].element
                 : placeholder;
@@ -521,7 +521,7 @@ const contentPatchers: Patcher[] = [
  * Walks the DOM tree and collects setters from patchers.
  *
  * Processing order per node:
- * 1. Try structural patchers — if one matches, it owns the node (skip steps 2-3)
+ * 1. Try structural patchers. If one matches, it owns the node (skip steps 2-3)
  * 2. Run content patchers (text interpolation, attribute interpolation)
  * 3. Recurse into child nodes
  */
@@ -530,7 +530,7 @@ function compileDOM(root: Node, config: EngineConfig): (ctx: Context, fns?: Func
     const get = createGetter(config);
 
     function processNode(node: Node) {
-        // Structural directives own the node — they clone + compileDOM internally
+        // Structural directives own the node; they clone + compileDOM internally
         for (const patch of structuralPatchers) {
             const setter = patch(node, get, config);
             if (setter) {
@@ -539,7 +539,7 @@ function compileDOM(root: Node, config: EngineConfig): (ctx: Context, fns?: Func
             }
         }
 
-        // Content patchers — resolve {{expr}} in text and attributes
+        // Content patchers: resolve {{expr}} in text and attributes
         for (const patch of contentPatchers) {
             const setter = patch(node, get, config);
             if (setter) setters.push(setter);

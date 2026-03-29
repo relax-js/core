@@ -903,7 +903,7 @@ r-input:state(loading) {
 
 This is preferred over data attributes because:
 
-- States are encapsulated — they can't be set externally via `setAttribute()`
+- States are encapsulated and can't be set externally via `setAttribute()`
 - They work with CSS pseudo-class syntax, consistent with `:disabled`, `:invalid`
 - No DOM attribute pollution
 

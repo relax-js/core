@@ -213,7 +213,7 @@ export class Blueprint {
             const argTokens = tokenizeArgs(trimmed);
             bindings.push({ path: [...path], methodName, argTokens });
           } else {
-            // No parentheses — treat as method with no args
+            // No parentheses, treat as method with no args
             bindings.push({ path: [...path], methodName: trimmed, argTokens: [] });
           }
         }

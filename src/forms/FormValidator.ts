@@ -1,3 +1,5 @@
+import { reportError } from '../errors';
+
 /**
  * @module FormValidator
  * Form validation with support for native HTML5 validation and error summaries.
@@ -51,7 +53,7 @@ export interface ValidatorOptions {
     /** Prevent default on validation failure (default: true) */
     preventDefaultOnFailed?: boolean;
     /** Callback invoked when form passes validation */
-    submitCallback?: () => void;
+    submitCallback?: () => void | Promise<void>;
 }
 
 /**
@@ -106,7 +108,18 @@ export class FormValidator {
             }
 
             if (this.validateForm()) {
-                this.options?.submitCallback?.apply(this);
+                try {
+                    const result = this.options?.submitCallback?.call(this);
+                    if (result instanceof Promise) {
+                        result.catch((cause) => {
+                            const error = reportError('submitCallback failed', { cause });
+                            if (error) throw error;
+                        });
+                    }
+                } catch (cause) {
+                    const error = reportError('submitCallback failed', { cause });
+                    if (error) throw error;
+                }
             } else {
                 if (options?.preventDefaultOnFailed !== false) {
                     event.preventDefault();

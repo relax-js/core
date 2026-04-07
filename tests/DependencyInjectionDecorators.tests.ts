@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { container, ContainerService, Inject, serviceCollection } from '../src/DependencyInjection';
 
 class Logger {
@@ -113,5 +113,53 @@ describe('Inject Property Decorator', () => {
         console.log(service);
         const injectedLogger = container.resolve(StringKeyPropertyService)['logger'];
         expect(injectedLogger).toBeInstanceOf(Logger);
+    });
+
+    test('resolves_per_instance_not_at_class_definition_time', () => {
+        // Register service AFTER class is defined to prove lazy resolution
+        class LateService {
+            value = 'resolved';
+        }
+
+        // Define class with @Inject before registering LateService
+        class Consumer {
+            @Inject(LateService)
+            private service!: LateService;
+
+            getValue() { return this.service.value; }
+        }
+
+        // Register after class definition
+        serviceCollection.registerByType(LateService);
+
+        // Creating an instance should resolve the service
+        const instance = new Consumer();
+        expect(instance.getValue()).toBe('resolved');
+    });
+
+    test('each_instance_gets_service_resolved_independently', () => {
+        class CountingService {
+            static instanceCount = 0;
+            id: number;
+            constructor() { this.id = ++CountingService.instanceCount; }
+        }
+
+        serviceCollection.registerByType(CountingService, {
+            scope: 'closest',
+            inject: [],
+        });
+
+        class MyComponent {
+            @Inject(CountingService)
+            private service!: CountingService;
+
+            getServiceId() { return this.service.id; }
+        }
+
+        const a = new MyComponent();
+        const b = new MyComponent();
+
+        // With 'closest' scope, each resolution creates a new instance
+        expect(a.getServiceId()).not.toBe(b.getServiceId());
     });
 });

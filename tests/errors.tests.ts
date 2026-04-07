@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { RelaxError, onError, reportError } from '../src/errors';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { RelaxError, onError, reportError, asyncHandler } from '../src/errors';
 
 describe('Error Handling', () => {
     beforeEach(() => {
@@ -85,6 +85,73 @@ describe('Error Handling', () => {
 
             const skippable = reportError('skippable', { optional: true });
             expect(skippable).toBeNull();
+        });
+    });
+
+    describe('asyncHandler', () => {
+        it('should_return_a_synchronous_function', () => {
+            const wrapped = asyncHandler(async () => {});
+            expect(typeof wrapped).toBe('function');
+        });
+
+        it('should_call_the_async_function', async () => {
+            let called = false;
+            const wrapped = asyncHandler(async () => {
+                called = true;
+            });
+
+            wrapped();
+            await new Promise(r => setTimeout(r, 0));
+
+            expect(called).toBe(true);
+        });
+
+        it('should_forward_arguments_to_the_wrapped_function', async () => {
+            let receivedArgs: unknown[] = [];
+            const wrapped = asyncHandler(async (...args: unknown[]) => {
+                receivedArgs = args;
+            });
+
+            wrapped('a', 42);
+            await new Promise(r => setTimeout(r, 0));
+
+            expect(receivedArgs).toEqual(['a', 42]);
+        });
+
+        it('should_report_error_when_async_function_rejects', async () => {
+            let reportedError: RelaxError | null = null;
+            onError((error, ctx) => {
+                reportedError = error;
+                ctx.suppress();
+            });
+
+            const wrapped = asyncHandler(async () => {
+                throw new Error('boom');
+            });
+
+            wrapped();
+            await new Promise(r => setTimeout(r, 0));
+
+            expect(reportedError).not.toBeNull();
+            expect(reportedError!.message).toBe('Async callback failed');
+            expect(reportedError!.context.cause).toBeInstanceOf(Error);
+        });
+
+        it('should_not_report_error_when_async_function_succeeds', async () => {
+            let reportedError: RelaxError | null = null;
+            onError((error, ctx) => {
+                reportedError = error;
+                ctx.suppress();
+            });
+
+            const wrapped = asyncHandler(async () => {
+                // success
+            });
+
+            wrapped();
+            await new Promise(r => setTimeout(r, 0));
+
+            expect(reportedError).toBeNull();
         });
     });
 });

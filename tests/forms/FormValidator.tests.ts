@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { FormValidator, ValidatorOptions } from '../../src/forms/FormValidator'
+import { FormValidator, ValidatorOptions } from '../../src/forms/FormValidator';
+import { onError, RelaxError } from '../../src/errors';
 
 describe('FormValidator', () => {
   let form: HTMLFormElement;
@@ -196,6 +197,72 @@ describe('FormValidator', () => {
       const detached = document.createElement('div');
 
       expect(() => FormValidator.FindForm(detached)).toThrow(/Parent or a direct child must be a FORM/);
+    });
+  });
+
+  describe('Async submitCallback', () => {
+    beforeEach(() => {
+      onError(null as any);
+    });
+
+    it('should_handle_async_callback_that_resolves', async () => {
+      input.value = 'test';
+      let callbackCompleted = false;
+
+      new FormValidator(form, {
+        submitCallback: async () => {
+          await new Promise(r => setTimeout(r, 0));
+          callbackCompleted = true;
+        },
+      });
+
+      form.dispatchEvent(submitEvent);
+      await new Promise(r => setTimeout(r, 10));
+
+      expect(callbackCompleted).toBe(true);
+    });
+
+    it('should_report_error_when_async_callback_rejects', async () => {
+      input.value = 'test';
+      let reportedError: RelaxError | null = null;
+      onError((error, ctx) => {
+        reportedError = error;
+        ctx.suppress();
+      });
+
+      new FormValidator(form, {
+        submitCallback: async () => {
+          throw new Error('save failed');
+        },
+      });
+
+      form.dispatchEvent(submitEvent);
+      await new Promise(r => setTimeout(r, 10));
+
+      expect(reportedError).not.toBeNull();
+      expect(reportedError!.message).toBe('submitCallback failed');
+      expect((reportedError!.context.cause as Error).message).toBe('save failed');
+    });
+
+    it('should_report_error_when_sync_callback_throws', () => {
+      input.value = 'test';
+      let reportedError: RelaxError | null = null;
+      onError((error, ctx) => {
+        reportedError = error;
+        ctx.suppress();
+      });
+
+      new FormValidator(form, {
+        submitCallback: () => {
+          throw new Error('sync boom');
+        },
+      });
+
+      form.dispatchEvent(submitEvent);
+
+      expect(reportedError).not.toBeNull();
+      expect(reportedError!.message).toBe('submitCallback failed');
+      expect((reportedError!.context.cause as Error).message).toBe('sync boom');
     });
   });
 

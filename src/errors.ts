@@ -95,3 +95,32 @@ export function reportError(message: string, context: Record<string, unknown>): 
     }
     return error;
 }
+
+/**
+ * Wraps an async function into a synchronous callback suitable for addEventListener.
+ * Catches promise rejections and reports them through the global error handler.
+ *
+ * @param fn - Async function to wrap
+ * @returns Synchronous function that can be passed to addEventListener
+ *
+ * @example
+ * button.addEventListener('click', asyncHandler(async (e) => {
+ *     await saveData();
+ * }));
+ *
+ * @example
+ * form.addEventListener('submit', asyncHandler(async (e) => {
+ *     e.preventDefault();
+ *     await submitForm();
+ * }));
+ */
+export function asyncHandler<TArgs extends unknown[]>(
+    fn: (...args: TArgs) => Promise<void>,
+): (...args: TArgs) => void {
+    return function (this: any, ...args: TArgs) {
+        fn.call(this, ...args).catch((cause: unknown) => {
+            const error = reportError('Async callback failed', { cause });
+            if (error) throw error;
+        });
+    };
+}

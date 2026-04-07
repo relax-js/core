@@ -70,33 +70,42 @@ export interface RegistrationOptions {
 }
 
 /**
- * Field decorator that collects property injection configuration.
- * Updates or creates the properties mapping in registration options.
- * 
+ * Field decorator that injects a service from the global DI container.
+ * The service is resolved when the class instance is created (not at class definition time),
+ * so services must be registered before the first instance is created.
+ *
+ * Works with web components regardless of how they are created:
+ * - By the browser (HTML parsing): services are resolved during construction
+ * - By application code (`document.createElement` or `new`): same behavior
+ * - Injected fields are available in `connectedCallback` and all lifecycle methods
+ *
  * @example
- * @ContainerService({
- *   inject: [Database],
- *   properties: {
- *     logger: Logger,        // Inject by type
- *     audit: 'auditLogger'   // Inject by key
- *   }
- * })
- * class UserService {
- *   @Inject(Logger)
- *   private logger!: Logger;
- *   
- *   @Inject('auditLogger')
- *   private audit!: Logger;
- *   
- *   constructor(db: Database) {}
+ * // Using @Inject in a web component
+ * class UserPanel extends HTMLElement {
+ *     @Inject(UserService)
+ *     private userService!: UserService;
+ *
+ *     connectedCallback() {
+ *         // userService is already resolved and ready to use
+ *         const user = this.userService.getCurrentUser();
+ *         this.render(user);
+ *     }
  * }
+ *
+ * @example
+ * // Services must be registered before components are created.
+ * // In your app entry point (e.g. main.ts):
+ * serviceCollection.registerByType(UserService, { inject: [ApiClient] });
+ * serviceCollection.registerByType(ApiClient, { inject: [] });
+ *
+ * // Now components can be created (by browser or code)
+ * customElements.define('user-panel', UserPanel);
  */
 export function Inject<T extends object>(typeOrKey: Constructor<T> | string) {
     return (_: undefined, context: ClassFieldDecoratorContext) => {
-        var instance = container.resolve(typeOrKey);
         return function(this: any) {
-            return instance;
-        }
+            return container.resolve(typeOrKey);
+        };
     };
 }
 
@@ -104,19 +113,27 @@ export function Inject<T extends object>(typeOrKey: Constructor<T> | string) {
 //const propertyCollector = new WeakMap<object, Record<string, string>>();
 
 /**
- * Class decorator that automatically registers a service in the global DI container.
- * Use this to declaratively register services without manual registration calls.
+ * Class decorator that registers a service in the global DI container.
+ * Registration happens at class definition time (when the module loads),
+ * so import the module before creating instances that depend on this service.
  *
- * Services are registered at module load time, so ensure this file is imported
- * before attempting to resolve the decorated service.
+ * For web components: use `@ContainerService` on services, not on the
+ * components themselves. Components use `@Inject` to consume services.
  *
  * @param options - Registration configuration including scope and dependencies
  *
  * @example
- * // Simple service with constructor injection
- * @ContainerService({ inject: [DatabaseConnection] })
- * class UserRepository {
- *     constructor(private db: DatabaseConnection) {}
+ * // Register a service that components can inject
+ * @ContainerService({ inject: [ApiClient] })
+ * class UserService {
+ *     constructor(private api: ApiClient) {}
+ *     getCurrentUser() { return this.api.get('/user'); }
+ * }
+ *
+ * // Component consumes the service
+ * class UserPanel extends HTMLElement {
+ *     @Inject(UserService)
+ *     private userService!: UserService;
  * }
  *
  * @example

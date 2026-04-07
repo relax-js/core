@@ -37,7 +37,7 @@ describe('Pager', () => {
     clickButtonWithText('2');
 
     expect(events.length).toBe(1);
-    expect(events[0].detail).toBe(2);
+    expect(events[0].page).toBe(2);
   });
 
   it('does not emit event on disabled prev/next', () => {

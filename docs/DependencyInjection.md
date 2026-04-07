@@ -118,7 +118,9 @@ class UserRepository {
 
 ### Using the `@Inject` Decorator
 
-The `@Inject` decorator resolves a dependency and assigns it to a class field:
+The `@Inject` decorator resolves a dependency and assigns it to a class field.
+The service is resolved when the instance is created, so the field is available
+in all methods including `connectedCallback` for web components.
 
 ```typescript
 import { ContainerService, Inject } from '@relax.js/core/di';
@@ -132,8 +134,6 @@ class OrderService {
     private cache!: CacheService;
 }
 ```
-
-`@Inject` resolves the dependency immediately when the class is instantiated, so the field is available in all methods (including the constructor body).
 
 ### Using the `properties` Option
 
@@ -153,26 +153,66 @@ class OrderService {
 }
 ```
 
-## Integration with Web Components
+## Using Services in Web Components
+
+Web components use `@Inject` to access services. Do not use `@ContainerService` on
+components since the browser creates them with zero constructor arguments.
+
+### Property Injection with @Inject
 
 ```typescript
-@ContainerService({ inject: [UserService] })
-class UserProfileComponent extends HTMLElement {
-    constructor(private userService: UserService) {
-        super();
-    }
+import { Inject } from '@relax.js/core/di';
+
+class UserPanel extends HTMLElement {
+    @Inject(UserService)
+    private userService!: UserService;
+
+    @Inject(LoggerService)
+    private logger!: LoggerService;
 
     connectedCallback() {
-        this.loadProfile();
-    }
-
-    async loadProfile() {
-        const user = await this.userService.getCurrentUser();
+        // Injected fields are resolved and ready to use
+        const user = this.userService.getCurrentUser();
+        this.logger.log('UserPanel connected');
         this.render(user);
     }
 }
 
-customElements.define('user-profile', UserProfileComponent);
+customElements.define('user-panel', UserPanel);
+```
+
+This works the same way regardless of how the component is created:
+
+```typescript
+// Created by application code
+document.createElement('user-panel');
+
+// Created by the browser from HTML
+// <user-panel></user-panel>
+```
+
+### Setup Order
+
+Register all services before defining custom elements. Services
+decorated with `@ContainerService` register themselves when imported,
+so import those modules first.
+
+```typescript
+// main.ts - application entry point
+
+// 1. Import services (registers them via @ContainerService)
+import './services/ApiClient';
+import './services/UserService';
+
+// 2. Register any manual services
+serviceCollection.register(ConfigService, {
+    inject: [],
+    instance: { apiUrl: '/api/v1' },
+});
+
+// 3. Define custom elements (components can now resolve services)
+import { UserPanel } from './components/UserPanel';
+customElements.define('user-panel', UserPanel);
 ```
 
 ## Resolving Dependencies

@@ -39,7 +39,15 @@ import { RouteTarget } from './RoutingTarget';
  * which means that we need to switch layout page
  * if someone else is configured for the route.
  */
-var currentLayout = getLayout() ?? 'default';
+var currentLayout: string | undefined;
+
+function getCurrentLayout(): string {
+    if (currentLayout === undefined) {
+        currentLayout = getLayout() ?? 'default';
+    }
+    return currentLayout;
+}
+
 function getLayout() {
     const path = window.location.pathname;
     if (path == '/index.html') {
@@ -129,7 +137,7 @@ export function defineRoutes(appRoutes: Route[]) {
  */
 export function startRouting() {
     let newPage = false;
-    if (currentLayout == '') {
+    if (getCurrentLayout() == '') {
         const path = window.location.pathname;
         const match = path.match(/\/([^\/]+)\.html$/);
         if (match && match[1] !== '') {
@@ -250,12 +258,12 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
         /\.html?$/,
         ''
     );
-    if (wantedLayout === currentLayout) {
+    if (wantedLayout === getCurrentLayout()) {
         return false;
     }
 
     console.log(
-        'Current layout: ' + currentLayout,
+        'Current layout: ' + getCurrentLayout(),
         'Wanted layout: ' + wantedLayout
     );
 
@@ -272,7 +280,7 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
     }
 
     console.log(
-        `requires layout switch from ${currentLayout} to ${wantedLayout}`
+        `requires layout switch from ${getCurrentLayout()} to ${wantedLayout}`
     );
     const navigationState = {
         routeName: routeResult.route.name,

@@ -80,7 +80,7 @@ export interface RegistrationOptions {
  * - Injected fields are available in `connectedCallback` and all lifecycle methods
  *
  * @example
- * // Using @Inject in a web component
+ * // Using `@Inject` in a web component
  * class UserPanel extends HTMLElement {
  *     @Inject(UserService)
  *     private userService!: UserService;

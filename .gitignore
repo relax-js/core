@@ -118,3 +118,6 @@ dist
 # lsmcp cache
 .lsmcp/cache
 .claude
+
+# Generated API docs (HTML)
+docs/api/

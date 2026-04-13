@@ -43,7 +43,7 @@ interface Validator {
 
 /** @internal */
 interface ValidatorRegistryEntry {
-    validator: { new (): Validator };
+    validator: new (...args: any[]) => Validator;
     validInputTypes: string[];
 }
 
@@ -66,7 +66,7 @@ const validators: Map<string, ValidatorRegistryEntry> = new Map();
  * }
  */
 export function RegisterValidator(validationName: string, validInputTypes: string[] = []) {
-    return function (target: { new (...args: unknown[]): Validator }) {
+    return function (target: new (...args: any[]) => Validator) {
         validators.set(validationName, { validator: target, validInputTypes });
     };
 }

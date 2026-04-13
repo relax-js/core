@@ -23,6 +23,7 @@ Target audience:  Beginner developers.
 - Use `declare type` for string enums (not `enum`)
 - Create explicit event classes extending `Event` (not `CustomEvent`); store data as class properties; register in `HTMLElementEventMap`
 - Use `ElementInternals` with `formAssociated = true` for form components
+- `null` vs `undefined` semantics: use `null` for intentional or structural absence (a defined terminator, an empty slot by design). Use `undefined` for "not yet set" or for query results that returned nothing (like `Array.find`). Do not mix within a single concept (e.g. pick one for a linked-list node's prev/next across the whole API).
 
 **CSS:**
 - Semantic variable names (`--surface-bg`, `--input-bg`, `--accent-primary`)

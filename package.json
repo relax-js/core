@@ -1,6 +1,6 @@
 {
     "name": "@relax.js/core",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Ship faster with less code. Web Component library with routing, forms, DI, templating, and i18n. No virtual DOM, no build magic, no surprise re-renders.",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",

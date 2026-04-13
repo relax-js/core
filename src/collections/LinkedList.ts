@@ -22,8 +22,8 @@ export class Node<T> {
      * Will notify the list of the update to ensure correct element count.
      */
     remove() {
-        this.prev.next = this.next;
-        this.next.prev = this.prev;
+        if (this.prev) this.prev.next = this.next;
+        if (this.next) this.next.prev = this.prev;
         this.removeCallback();
     }
 }
@@ -32,8 +32,8 @@ export class Node<T> {
  * A trivial linked list implementation.
  */
 export class LinkedList<T> {
-    private _first?: Node<T>;
-    private _last?: Node<T>;
+    private _first: Node<T> | null = null;
+    private _last: Node<T> | null = null;
     private _length = 0;
 
     /**
@@ -41,7 +41,7 @@ export class LinkedList<T> {
      * @param value Value that should be contained in the node.
      */
     addFirst(value: T) {
-        const newNode = new Node(value, () => this._length--);
+        const newNode = this.createNode(value);
         if (!this._first) {
             this._first = newNode;
             this._last = this._first;
@@ -59,10 +59,10 @@ export class LinkedList<T> {
      * @param value Value that should be contained in a node.
      */
     addLast(value: T) {
-        const newNode = new Node(value, () => this._length--);
-        if (!this._first) {
+        const newNode = this.createNode(value);
+        if (!this._last) {
             this._first = newNode;
-            this._last = this._first;
+            this._last = newNode;
         } else {
             newNode.prev = this._last;
             this._last.next = newNode;
@@ -72,17 +72,28 @@ export class LinkedList<T> {
         this._length++;
     }
 
+    private createNode(value: T): Node<T> {
+        let node: Node<T>;
+        node = new Node(value, () => {
+            if (this._first === node) this._first = node.next;
+            if (this._last === node) this._last = node.prev;
+            this._length--;
+        });
+        return node;
+    }
+
     /**
      * Remove a node from the beginning of the list.
      * @returns Value contained in the first node.
      */
     removeFirst(): T {
-        if (!this.first) {
+        if (!this._first) {
             throw new Error('The list is empty.');
         }
 
         const value = this._first.value;
         this._first = this._first.next;
+        if (!this._first) this._last = null;
         this._length--;
         return value;
     }
@@ -92,12 +103,13 @@ export class LinkedList<T> {
      * @returns Value contained in the last node.
      */
     removeLast(): T {
-        if (!this.last) {
+        if (!this._last) {
             throw new Error('The list is empty.');
         }
 
         const value = this._last.value;
         this._last = this._last.prev;
+        if (!this._last) this._first = null;
         this._length--;
         return value;
     }
@@ -112,28 +124,28 @@ export class LinkedList<T> {
     }
 
     /**
-     * First ndoe.
+     * First node, or `null` if the list is empty.
      */
-    get first(): Node<T> | undefined {
+    get first(): Node<T> | null {
         return this._first;
     }
 
     /**
-     * Contained value of the first node.
+     * Contained value of the first node, or `undefined` if the list is empty.
      */
     get firstValue(): T | undefined {
         return this._first?.value;
     }
 
     /**
-     * Last node.
+     * Last node, or `null` if the list is empty.
      */
-    get last(): Node<T> | undefined {
+    get last(): Node<T> | null {
         return this._last;
     }
 
     /**
-     * Contained value of the last node.
+     * Contained value of the last node, or `undefined` if the list is empty.
      */
     get lastValue(): T | undefined {
         return this._last?.value;

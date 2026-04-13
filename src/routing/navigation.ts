@@ -20,7 +20,6 @@ import {
     RouteError,
     RouteGuardError,
     type Route,
-    type RouteData,
     type RouteParamType,
     type RouteMatchResult,
     type NavigateOptions,
@@ -98,7 +97,7 @@ export function defineRoutes(appRoutes: Route[]) {
     internalRoutes.length = 0;
     internalRoutes.push(...appRoutes);
 
-    var errs = [];
+    var errs: string[] = [];
     appRoutes.forEach((route) => {
         if (
             route.componentTagName &&
@@ -136,14 +135,12 @@ export function defineRoutes(appRoutes: Route[]) {
  * }
  */
 export function startRouting() {
-    let newPage = false;
     if (getCurrentLayout() == '') {
         const path = window.location.pathname;
         const match = path.match(/\/([^\/]+)\.html$/);
         if (match && match[1] !== '') {
             console.log('setting current layut', match[1]);
             currentLayout = match[1];
-            newPage = true;
         } else {
             console.log('Setting default layout name');
             currentLayout = 'default';
@@ -336,7 +333,7 @@ function tryLoadRouteFromLayoutNavigation(): boolean {
 
 function generateErrorMessage(
     routeNameOrUrl: string,
-    routeParams: Record<string, RouteParamType>,
+    routeParams: Record<string, RouteParamType> | undefined,
     allRoutes: Route[]
 ): string {
     var routeData = '';

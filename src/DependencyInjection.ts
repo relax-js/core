@@ -247,7 +247,7 @@ export class ServiceCollection {
         this.checkNameCollision(constructor);
         if (options) this.validateRegistration(constructor, options);
 
-        const reg = new Registration(constructor, options?.scope, options?.inject ?? [], options?.properties, options?.key, options?.instance);
+        const reg = new Registration(constructor, options?.scope ?? 'global', options?.inject ?? [], options?.properties, options?.key, options?.instance);
         if (options?.key) {
             this.servicesByKey.set(options.key, reg);
         }

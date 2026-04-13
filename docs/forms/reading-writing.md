@@ -185,9 +185,107 @@ setFormData(form, {
 });
 ```
 
+### Select (Single)
+
+`setFormData` can both **populate options** and **select a value** on a `<select>`.
+
+- The selected value comes from `data` (second argument).
+- The options come from `context` (optional third argument). If `context` is not provided, options must already exist in the DOM.
+- The data value is compared as a string against each option's `value` attribute. If no option matches, nothing is selected.
+
+#### Existing options in the DOM
+
+```html
+<select name="country">
+    <option value="se">Sweden</option>
+    <option value="us">United States</option>
+</select>
+```
+
+```typescript
+setFormData(form, { country: 'se' });
+// Selects the "Sweden" option
+```
+
+#### Populating options from `context`
+
+Pass the collection on a third argument. By convention, the property name in `context` matches the select's `name` attribute. Items use a `{ value, text }` shape.
+
+```html
+<select name="country"></select>
+```
+
+```typescript
+setFormData(form, { country: 'se' }, {
+    country: [
+        { value: 'se', text: 'Sweden' },
+        { value: 'us', text: 'United States' }
+    ]
+});
+```
+
+A plain string array also works — each string becomes both the value and the text:
+
+```typescript
+setFormData(form, { country: 'Sweden' }, {
+    country: ['Sweden', 'United States']
+});
+```
+
+#### Using `data-source` for custom property names
+
+When your collection has different property names (like `id` and `name`), declare them on the select:
+
+```html
+<select name="country" data-source="countries(id, name)"></select>
+```
+
+```typescript
+setFormData(form, { country: 2 }, {
+    countries: [
+        { id: 1, name: 'Sweden' },
+        { id: 2, name: 'United States' }
+    ]
+});
+```
+
+The `data-source` attribute has two parts:
+
+- **Source name** (required): the property on `context` to read from — `countries` above.
+- **Value and text properties** (optional): inside parentheses, separated by a comma — `(id, name)` means `item.id` is the option value and `item.name` is the option text. Without parentheses, the defaults `value` and `text` are used.
+
+#### `data-source` as a method
+
+The property on `context` can be a method. It is called with no arguments and must return an array:
+
+```html
+<select name="country" data-source="getCountries"></select>
+```
+
+```typescript
+setFormData(form, { country: 'se' }, {
+    getCountries: () => [
+        { value: 'se', text: 'Sweden' },
+        { value: 'us', text: 'United States' }
+    ]
+});
+```
+
+#### Placeholder options are preserved
+
+Options whose `value` is empty (for example a leading "Select one…") are kept when `setFormData` repopulates the list:
+
+```html
+<select name="country">
+    <option value="">Select one…</option>
+</select>
+```
+
+After calling `setFormData` with a `context`, the placeholder stays at the top and the new options are appended after it.
+
 ### Select Multiple
 
-Array values are set directly on `<select multiple>` elements:
+Works the same way as single selects. The `data` value must be an array. Options can be populated from `context` using either the name convention or `data-source`.
 
 ```html
 <select name="colors" multiple>
@@ -201,6 +299,8 @@ Array values are set directly on `<select multiple>` elements:
 setFormData(form, { colors: ['red', 'blue'] });
 // Selects "red" and "blue", deselects "green"
 ```
+
+Each array item is compared as a string against each option's `value` attribute. Options that don't match any array item are deselected.
 
 ### Simple Arrays ([] Notation)
 

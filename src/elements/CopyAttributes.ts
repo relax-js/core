@@ -6,8 +6,7 @@ export function copyInputAttributes(
 
     for (const key in target) {
         if (source.hasAttribute(key) && key in target) {
-            target.setAttribute(key, source.getAttribute(key));
-            //(target as unknown)[key] = (source as unknown)[key];
+            target.setAttribute(key, source.getAttribute(key)!);
             copied = true;
         }
     }
@@ -21,10 +20,9 @@ export function copyAttributes(
 ): boolean {
     let copied = false;
 
-    for (const key in attributes) {
-        if (source.hasAttribute(key) && key in target) {
-            target.setAttribute(key, source.getAttribute(key));
-            //(target as unknown)[key] = (source as unknown)[key];
+    for (const key of attributes) {
+        if (source.hasAttribute(key)) {
+            target.setAttribute(key, source.getAttribute(key)!);
             copied = true;
         }
     }

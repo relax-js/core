@@ -141,10 +141,11 @@ export class WebSocketClient<TMessage> {
             return Promise.resolve(this.receiveQueue.removeFirst());
         }
 
-        this.receivePromiseWrapper = new PromiseWrapper();
+        const wrapper = new PromiseWrapper<TMessage>();
+        this.receivePromiseWrapper = wrapper;
         return new Promise((resolve, reject) => {
-            this.receivePromiseWrapper.resolve = resolve;
-            this.receivePromiseWrapper.reject = reject;
+            wrapper.resolve = resolve;
+            wrapper.reject = reject;
         });
     }
 
@@ -175,7 +176,9 @@ export class WebSocketClient<TMessage> {
     }
 
     private reConnect() {
-        const ws = this.url ? new WebSocket(this.url) : this.wsFactory();
+        const ws: WebSocketAbstraction = this.url
+            ? (new WebSocket(this.url) as unknown as WebSocketAbstraction)
+            : this.wsFactory!();
         this.ws = ws;
         ws.onmessage = (evt: SimpleDataEvent) => this.onMessage(evt);
         ws.onerror = () => ws.close();
@@ -217,7 +220,7 @@ export class WebSocketClient<TMessage> {
             dataToSend = data;
         }
 
-        this.ws.send(dataToSend);
+        this.ws!.send(dataToSend);
     }
 
     private sendQueueItems(): void {

@@ -30,4 +30,17 @@ describe('copyAttributes', () => {
         const result = copyAttributes(source, target, ['title']);
         expect(result).toBe(false);
     });
+
+    it('should_copy_listed_attributes_from_source_to_target', () => {
+        const source = document.createElement('div');
+        source.setAttribute('title', 'hello');
+        source.setAttribute('id', 'theId');
+        const target = document.createElement('div');
+
+        const result = copyAttributes(source, target, ['title', 'id']);
+
+        expect(result).toBe(true);
+        expect(target.getAttribute('title')).toBe('hello');
+        expect(target.getAttribute('id')).toBe('theId');
+    });
 });

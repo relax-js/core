@@ -155,7 +155,8 @@ export class TableSorter {
 
    private updateSortIndicators() {
     const headers = this.table.tHead?.querySelectorAll('th[name]');
-    headers?.forEach((th: HTMLElement) => {
+    headers?.forEach((el) => {
+      const th = el as HTMLElement;
       // Remove existing indicators
       const existingIndicator = th.querySelector('.sort-indicator') as HTMLElement;
       if (existingIndicator) {

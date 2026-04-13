@@ -179,7 +179,7 @@ function processElement(
           setter(instance) {
             const boundFunction = func.bind(instance);
             element.removeAttribute(attr.name);
-            element[attr.name] = boundFunction;
+            (element as any)[attr.name] = boundFunction;
           },
         });
 
@@ -197,7 +197,7 @@ function processElement(
       setter(instance) {
         const value = attributeCallback!(instance) ?? attrValue;
         if (attr.name in element) {
-          element[attr.name] = value;
+          (element as any)[attr.name] = value;
         } else {
           attr.value = value;
         }
@@ -310,7 +310,7 @@ function parseTemplate(
         }
 
         matchingPipes.forEach((pipe) => {
-          value = pipes[pipe](value);
+          value = pipes.get(pipe)(value);
         });
         return value;
       });

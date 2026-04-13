@@ -53,7 +53,7 @@ class NumberRouteSegment implements RouteSegment {
  */
 class StringRouteSegment implements RouteSegment {
     constructor(public paramName: string) {}
-    isMatch(value: string): boolean {
+    isMatch(_value: string): boolean {
         return true;
     }
 
@@ -153,37 +153,6 @@ class RouteImp {
         return { route: this.route, params: routeData, urlSegments };
     }
 
-    /**
-     * Converts string parameters to proper types
-     * @param routeParams Raw string parameters to convert
-     */
-    parseParameters(routeParams: Record<string, string>): RouteData {
-        const d: Record<string, any> = {};
-
-        this.segments.forEach((segment) => {
-            if (!segment.paramName) {
-                return;
-            }
-
-            if (!segment.isMatch(providedValue)) {
-                throw new Error(
-                    `Failed to convert parameter ${segment.paramName}, or missing value: ${providedValue}, route: ${this.route.name}.`
-                );
-            }
-
-            var providedValue = routeParams[segment.paramName];
-            if (!providedValue) {
-                throw new Error(
-                    `Parameter  ${segment.paramName} was not provided, route: ${this.route.name}.`
-                );
-            }
-
-            var convertedValue = segment.getValue(providedValue);
-            d[segment.paramName] = convertedValue;
-        });
-
-        return d;
-    }
 }
 
 /**
@@ -221,7 +190,7 @@ export function findRouteByName(
     }
 
     var imp = generateRouteImp(route);
-    var result = imp.buildUrl(routeData);
+    var result = imp.buildUrl(routeData ?? {});
     return result;
 }
 
@@ -265,7 +234,7 @@ function generateRouteImps(routes: Route[]) {
  * Parses URL pattern into segment matchers
  */
 function generateRouteImp(route: Route): RouteImp {
-    var impSegments = [];
+    var impSegments: RouteSegment[] = [];
     const segments = route.path.replace(/^\/|\/$/g, '').split('/');
     segments.forEach((segment) => {
         if (segment.substring(0, 1) == ':') {

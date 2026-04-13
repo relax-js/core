@@ -9,6 +9,13 @@ Relaxjs is designed for gradual adoption. Start with full control using vanilla 
 npm i -S @relax.js/core
 ```
 
+If you are starting a new project, the **Setup** guides cover the foundations:
+
+- [Vite Setup](setup/vite.md) — `tsconfig.json`, Vite version, and decorator support
+- [Project Structure](setup/project-structure.md) — recommended folder layout
+- [Bootstrapping](setup/bootstrapping.md) — the order DI, i18n, and routing must start in
+- [Build and Deploy](setup/build-and-deploy.md) — production builds, base paths, SPA fallback
+
 ---
 
 ## Level 1: Plain Web Components

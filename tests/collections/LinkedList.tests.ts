@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { LinkedList, Node } from '../../src/collections/LinkedList';
+import { LinkedList } from '../../src/collections/LinkedList';
 
 describe('LinkedList', () => {
     it('should_start_empty', () => {
         const list = new LinkedList<number>();
         expect(list.length).toBe(0);
-        expect(list.first).toBeUndefined();
-        expect(list.last).toBeUndefined();
+        expect(list.first).toBeNull();
+        expect(list.last).toBeNull();
     });
 
     describe('addFirst', () => {
@@ -91,6 +91,41 @@ describe('LinkedList', () => {
 
             expect(list.length).toBe(2);
             expect(list.first!.next!.value).toBe(3);
+        });
+
+        it('should_update_list_first_pointer_when_removing_head', () => {
+            const list = new LinkedList<number>();
+            list.addLast(1);
+            list.addLast(2);
+
+            list.first!.remove();
+
+            expect(list.length).toBe(1);
+            expect(list.firstValue).toBe(2);
+            expect(list.lastValue).toBe(2);
+        });
+
+        it('should_update_list_last_pointer_when_removing_tail', () => {
+            const list = new LinkedList<number>();
+            list.addLast(1);
+            list.addLast(2);
+
+            list.last!.remove();
+
+            expect(list.length).toBe(1);
+            expect(list.firstValue).toBe(1);
+            expect(list.lastValue).toBe(1);
+        });
+
+        it('should_empty_the_list_when_removing_the_only_node', () => {
+            const list = new LinkedList<number>();
+            list.addLast(1);
+
+            list.first!.remove();
+
+            expect(list.length).toBe(0);
+            expect(list.first).toBeNull();
+            expect(list.last).toBeNull();
         });
     });
 

@@ -485,4 +485,170 @@ describe('setFormData', () => {
     expect(checkboxes[0].checked).toBe(true);
     expect(checkboxes[1].checked).toBe(false);
   });
+
+  describe('select option population from context', () => {
+    it('populates_select_using_field_name_when_context_key_matches', () => {
+      form.innerHTML = `<select name="country"></select>`;
+
+      setFormData(form, { country: 'se' }, {
+        country: [
+          { value: 'se', text: 'Sweden' },
+          { value: 'us', text: 'United States' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(2);
+      expect(select.options[0].value).toBe('se');
+      expect(select.options[0].text).toBe('Sweden');
+      expect(select.options[1].value).toBe('us');
+      expect(select.value).toBe('se');
+    });
+
+    it('uses_data_source_attribute_to_resolve_collection_name', () => {
+      form.innerHTML = `<select name="country" data-source="countries"></select>`;
+
+      setFormData(form, { country: 'us' }, {
+        countries: [
+          { value: 'se', text: 'Sweden' },
+          { value: 'us', text: 'United States' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(2);
+      expect(select.value).toBe('us');
+    });
+
+    it('uses_value_and_text_property_names_from_data_source_parentheses', () => {
+      form.innerHTML = `<select name="country" data-source="countries(id, name)"></select>`;
+
+      setFormData(form, { country: '2' }, {
+        countries: [
+          { id: 1, name: 'Sweden' },
+          { id: 2, name: 'United States' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(2);
+      expect(select.options[0].value).toBe('1');
+      expect(select.options[0].text).toBe('Sweden');
+      expect(select.options[1].value).toBe('2');
+      expect(select.options[1].text).toBe('United States');
+      expect(select.value).toBe('2');
+    });
+
+    it('calls_method_on_context_when_property_is_a_function', () => {
+      form.innerHTML = `<select name="country" data-source="getCountries"></select>`;
+
+      setFormData(form, { country: 'se' }, {
+        getCountries: () => [
+          { value: 'se', text: 'Sweden' },
+          { value: 'us', text: 'United States' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(2);
+      expect(select.value).toBe('se');
+    });
+
+    it('treats_string_array_items_as_both_value_and_text', () => {
+      form.innerHTML = `<select name="country"></select>`;
+
+      setFormData(form, { country: 'Sweden' }, {
+        country: ['Sweden', 'United States']
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(2);
+      expect(select.options[0].value).toBe('Sweden');
+      expect(select.options[0].text).toBe('Sweden');
+      expect(select.value).toBe('Sweden');
+    });
+
+    it('preserves_placeholder_options_with_empty_value', () => {
+      form.innerHTML = `
+        <select name="country">
+          <option value="">Select one…</option>
+        </select>
+      `;
+
+      setFormData(form, { country: 'se' }, {
+        country: [
+          { value: 'se', text: 'Sweden' },
+          { value: 'us', text: 'United States' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(3);
+      expect(select.options[0].value).toBe('');
+      expect(select.options[0].text).toBe('Select one…');
+      expect(select.options[1].value).toBe('se');
+      expect(select.value).toBe('se');
+    });
+
+    it('strips_array_brackets_from_name_when_using_field_name_convention', () => {
+      form.innerHTML = `<select name="colors[]" multiple></select>`;
+
+      setFormData(form, { colors: ['red', 'blue'] }, {
+        colors: [
+          { value: 'red', text: 'Red' },
+          { value: 'green', text: 'Green' },
+          { value: 'blue', text: 'Blue' }
+        ]
+      });
+
+      const select = form.querySelector('[name="colors[]"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(3);
+      expect(select.options[0].selected).toBe(true);
+      expect(select.options[1].selected).toBe(false);
+      expect(select.options[2].selected).toBe(true);
+    });
+
+    it('leaves_select_alone_when_context_key_is_missing', () => {
+      form.innerHTML = `
+        <select name="country">
+          <option value="se">Sweden</option>
+        </select>
+      `;
+
+      setFormData(form, { country: 'se' }, { other: [] });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(1);
+      expect(select.value).toBe('se');
+    });
+
+    it('leaves_select_alone_when_context_value_is_not_an_array', () => {
+      form.innerHTML = `
+        <select name="country">
+          <option value="se">Sweden</option>
+        </select>
+      `;
+
+      setFormData(form, { country: 'se' }, { country: 'not-an-array' });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(1);
+      expect(select.value).toBe('se');
+    });
+
+    it('does_not_touch_selects_when_context_argument_is_omitted', () => {
+      form.innerHTML = `
+        <select name="country">
+          <option value="se">Sweden</option>
+          <option value="us">United States</option>
+        </select>
+      `;
+
+      setFormData(form, { country: 'us' });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      expect(select.options.length).toBe(2);
+      expect(select.value).toBe('us');
+    });
+  });
 });

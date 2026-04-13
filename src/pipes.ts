@@ -346,7 +346,7 @@ export function createPipeRegistry(): PipeRegistry {
 
     return {
         lookup(name) {
-            return pipes.get(name);
+            return pipes.get(name) ?? null;
         },
         get(name) {
             var pipe = pipes.get(name);

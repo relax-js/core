@@ -62,13 +62,13 @@ function escapeRegex(s: string): string {
  */
 export function defaultFormatICU(
     message: string,
-    values: Record<string, any>,
+    values?: Record<string, any>,
     locale: string = 'en'
 ): string {
     return message.replace(
         /\{(\w+)(?:, (plural|select),((?:[^{}]*\{[^{}]*\})+))?\}/g,
         (_, key, type, categoriesPart) => {
-            const value = values[key];
+            const value = values?.[key];
 
             if (type === 'plural') {
                 const exact = new RegExp(

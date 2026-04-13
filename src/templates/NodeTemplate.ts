@@ -118,6 +118,7 @@ export class Blueprint {
 
   createInstance(component?: Record<string, any>): BoundNode {
     const rootClone = this.getRootElement().cloneNode(true) as HTMLElement;
+    const componentOrEmpty = component ?? {};
 
     const boundBindings: BoundBinding[] = this.bindings.map(binding => {
       const node = this.getNodeAtPath(rootClone, binding.path);
@@ -125,14 +126,14 @@ export class Blueprint {
         return {
           type: 'text',
           node,
-          func: (data, node) => binding.func(data, component, node)
+          func: (data, node) => binding.func(data, componentOrEmpty, node)
         };
       } else {
         return {
           type: 'attribute',
           element: node as HTMLElement,
           name: binding.name,
-          func: (data, node) => binding.func(data, component, node)
+          func: (data, node) => binding.func(data, componentOrEmpty, node)
         };
       }
     });

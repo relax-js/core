@@ -55,7 +55,7 @@ export class RouteTarget extends HTMLElement {
 
     private async loadComponent(evt: NavigateRouteEvent) {
         const tagName = evt.route.componentTagName
-            ?? customElements.getName(evt.route.component);
+            ?? (evt.route.component ? customElements.getName(evt.route.component) : null);
 
         if (!tagName) {
             const error = reportError('Failed to find component for route', {

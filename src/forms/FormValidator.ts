@@ -86,7 +86,7 @@ export interface ValidatorOptions {
  * });
  */
 export class FormValidator {
-    private errorSummary: HTMLDivElement;
+    private errorSummary?: HTMLDivElement;
 
     constructor(
         private form: HTMLFormElement,
@@ -192,7 +192,7 @@ export class FormValidator {
             this.createErrorSummary();
         }
 
-        const errorList = this.errorSummary.querySelector('ul');
+        const errorList = this.errorSummary!.querySelector('ul')!;
         messages.forEach((message) => {
             const listItem = document.createElement('li');
             listItem.textContent = message;
@@ -224,7 +224,7 @@ export class FormValidator {
         if (!this.errorSummary){
             this.createErrorSummary();
         }
-        const errorList = this.errorSummary.querySelector('ul');
+        const errorList = this.errorSummary!.querySelector('ul')!;
         const listItem = document.createElement('li');
         listItem.textContent = `${fieldName}: ${message}`;
         errorList.appendChild(listItem);
@@ -235,7 +235,8 @@ export class FormValidator {
      */
     public clearErrorSummary() {
         if (this.errorSummary){
-            this.errorSummary.querySelector('ul').innerHTML='';
+            const ul = this.errorSummary.querySelector('ul');
+            if (ul) ul.innerHTML = '';
         }
     }
 

@@ -36,7 +36,7 @@ describe('ServiceCollection', () => {
         const reg = collection.tryGet(TestService);
         expect(reg).toEqual({
             classConstructor: TestService,
-            scope: undefined,
+            scope: 'global',
             properties: {},
             inject: ['dep1'],
             key: undefined,

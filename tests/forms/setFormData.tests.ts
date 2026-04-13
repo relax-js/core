@@ -636,6 +636,68 @@ describe('setFormData', () => {
       expect(select.value).toBe('se');
     });
 
+    it('groups_options_into_optgroup_when_third_field_is_declared', () => {
+      form.innerHTML = `<select name="country" data-source="countries(id, name, region)"></select>`;
+
+      setFormData(form, { country: 2 }, {
+        countries: [
+          { id: 1, name: 'Sweden', region: 'Europe' },
+          { id: 2, name: 'United States', region: 'Americas' },
+          { id: 3, name: 'Germany', region: 'Europe' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      const optgroups = select.querySelectorAll('optgroup');
+      expect(optgroups.length).toBe(2);
+      expect(optgroups[0].label).toBe('Europe');
+      expect(optgroups[0].children.length).toBe(2);
+      expect((optgroups[0].children[0] as HTMLOptionElement).text).toBe('Sweden');
+      expect((optgroups[0].children[1] as HTMLOptionElement).text).toBe('Germany');
+      expect(optgroups[1].label).toBe('Americas');
+      expect(optgroups[1].children.length).toBe(1);
+      expect(select.value).toBe('2');
+    });
+
+    it('places_items_without_a_group_value_at_top_level', () => {
+      form.innerHTML = `<select name="country" data-source="countries(id, name, region)"></select>`;
+
+      setFormData(form, { country: 1 }, {
+        countries: [
+          { id: 1, name: 'Other' },
+          { id: 2, name: 'Sweden', region: 'Europe' },
+          { id: 3, name: 'Unassigned', region: '' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      const topLevelOptions = Array.from(select.children).filter(c => c.tagName === 'OPTION') as HTMLOptionElement[];
+      const optgroups = select.querySelectorAll('optgroup');
+
+      expect(topLevelOptions.length).toBe(2);
+      expect(topLevelOptions[0].text).toBe('Other');
+      expect(topLevelOptions[1].text).toBe('Unassigned');
+      expect(optgroups.length).toBe(1);
+      expect(optgroups[0].label).toBe('Europe');
+    });
+
+    it('keeps_first_encountered_group_order', () => {
+      form.innerHTML = `<select name="country" data-source="countries(id, name, region)"></select>`;
+
+      setFormData(form, {}, {
+        countries: [
+          { id: 1, name: 'United States', region: 'Americas' },
+          { id: 2, name: 'Sweden', region: 'Europe' },
+          { id: 3, name: 'Brazil', region: 'Americas' }
+        ]
+      });
+
+      const select = form.querySelector('[name="country"]') as HTMLSelectElement;
+      const optgroups = select.querySelectorAll('optgroup');
+      expect(optgroups[0].label).toBe('Americas');
+      expect(optgroups[1].label).toBe('Europe');
+    });
+
     it('does_not_touch_selects_when_context_argument_is_omitted', () => {
       form.innerHTML = `
         <select name="country">

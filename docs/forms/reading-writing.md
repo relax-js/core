@@ -249,10 +249,11 @@ setFormData(form, { country: 2 }, {
 });
 ```
 
-The `data-source` attribute has two parts:
+The `data-source` attribute has three parts:
 
 - **Source name** (required): the property on `context` to read from — `countries` above.
 - **Value and text properties** (optional): inside parentheses, separated by a comma — `(id, name)` means `item.id` is the option value and `item.name` is the option text. Without parentheses, the defaults `value` and `text` are used.
+- **Group property** (optional): a third name inside the parentheses declares the property that assigns each item to an `<optgroup>` — see below.
 
 #### `data-source` as a method
 
@@ -270,6 +271,41 @@ setFormData(form, { country: 'se' }, {
     ]
 });
 ```
+
+#### Grouping options into `<optgroup>`
+
+Add a third name inside the parentheses to group items:
+
+```html
+<select name="country" data-source="countries(id, name, region)"></select>
+```
+
+```typescript
+setFormData(form, { country: 2 }, {
+    countries: [
+        { id: 1, name: 'Sweden', region: 'Europe' },
+        { id: 2, name: 'United States', region: 'Americas' },
+        { id: 3, name: 'Germany', region: 'Europe' }
+    ]
+});
+```
+
+Produces:
+
+```html
+<select name="country">
+    <optgroup label="Europe">
+        <option value="1">Sweden</option>
+        <option value="3">Germany</option>
+    </optgroup>
+    <optgroup label="Americas">
+        <option value="2" selected>United States</option>
+    </optgroup>
+</select>
+```
+
+- Group order follows the order each group is first encountered in the items array.
+- Items whose group property is missing, `null`, `undefined`, or an empty string are placed at the top level of the select (ungrouped).
 
 #### Placeholder options are preserved
 

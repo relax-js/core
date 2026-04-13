@@ -83,6 +83,19 @@
  *     { value: 'us', text: 'United States' }
  *   ]
  * });
+ *
+ * @example
+ * // Grouping options into <optgroup> using a third field in data-source
+ * // <select name="country" data-source="countries(id, name, region)"></select>
+ * setFormData(form, { country: 2 }, {
+ *   countries: [
+ *     { id: 1, name: 'Sweden', region: 'Europe' },
+ *     { id: 2, name: 'United States', region: 'Americas' },
+ *     { id: 3, name: 'Germany', region: 'Europe' }
+ *   ]
+ * });
+ * // Produces two <optgroup> elements, "Europe" and "Americas", in the
+ * // order each group first appears in the items array.
  */
 export function setFormData(form: HTMLFormElement, data: object, context?: object): void {
     if (context) {
@@ -214,14 +227,18 @@ export function setFormData(form: HTMLFormElement, data: object, context?: objec
     let sourceKey: string;
     let valueField = 'value';
     let textField = 'text';
+    let groupField: string | null = null;
 
     if (dataSource) {
-      const match = dataSource.match(/^\s*(\w+)\s*(?:\(\s*(\w+)\s*,\s*(\w+)\s*\))?\s*$/);
+      const match = dataSource.match(/^\s*(\w+)\s*(?:\(\s*(\w+)\s*,\s*(\w+)\s*(?:,\s*(\w+)\s*)?\))?\s*$/);
       if (!match) return;
       sourceKey = match[1];
       if (match[2] && match[3]) {
         valueField = match[2];
         textField = match[3];
+      }
+      if (match[4]) {
+        groupField = match[4];
       }
     } else {
       sourceKey = name.endsWith('[]') ? name.slice(0, -2) : name;
@@ -238,15 +255,42 @@ export function setFormData(form: HTMLFormElement, data: object, context?: objec
     select.innerHTML = '';
     placeholders.forEach(opt => select.add(opt));
 
+    const groups = new Map<string, HTMLOptGroupElement>();
+
     for (const item of items) {
       if (item === null || item === undefined) continue;
+
+      let value: string;
+      let text: string;
+      let groupLabel = '';
+
       if (typeof item === 'object') {
-        const value = String(item[valueField]);
-        const text = String(item[textField]);
-        select.add(new Option(text, value));
+        value = String(item[valueField]);
+        text = String(item[textField]);
+        if (groupField) {
+          const raw = item[groupField];
+          if (raw !== null && raw !== undefined && String(raw) !== '') {
+            groupLabel = String(raw);
+          }
+        }
       } else {
         const str = String(item);
-        select.add(new Option(str, str));
+        value = str;
+        text = str;
+      }
+
+      const option = new Option(text, value);
+      if (groupLabel) {
+        let optgroup = groups.get(groupLabel);
+        if (!optgroup) {
+          optgroup = document.createElement('optgroup');
+          optgroup.label = groupLabel;
+          groups.set(groupLabel, optgroup);
+          select.appendChild(optgroup);
+        }
+        optgroup.appendChild(option);
+      } else {
+        select.add(option);
       }
     }
   }

@@ -18,6 +18,19 @@ A clickable element that triggers client-side navigation to a named route.
 <r-link name="product" param-id="456" param-tab="details">Product Details</r-link>
 ```
 
+### Multi-word Parameter Names
+
+HTML lowercases attribute names, so `param-programId` reaches the DOM as `param-programid`. Two ways to target a route parameter declared as `:programId`:
+
+```html
+<r-link name="program" param-program-id="42">Open</r-link>
+<r-link name="program" param-programId="42">Also works</r-link>
+```
+
+The kebab-case form (`param-program-id`) is converted to camelCase (`programId`) before navigation. The camelCase form is recovered through case-insensitive lookup against the route definition. Either way, the component receives the parameter under the route-defined name (`programId`).
+
+For complex values, prefer the `params` JSON attribute below — JSON keys preserve their casing exactly.
+
 ### With Target
 
 ```html
@@ -40,7 +53,7 @@ A clickable element that triggers client-side navigation to a named route.
 | `name` | `string` | Route name to navigate to (required) |
 | `target` | `string` | Target `r-route-target` name |
 | `params` | `string` | JSON object with additional route data |
-| `param-*` | `string` | Individual route parameters (e.g., `param-id="123"`) |
+| `param-*` | `string` | Individual route parameters (e.g., `param-id="123"`). Kebab-case is converted to camelCase (`param-program-id` → `programId`). |
 
 ## Behavior
 

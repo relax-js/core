@@ -83,8 +83,15 @@ The simplest way to navigate is with [`<r-link>`](RouteLink.md):
 
 ```html
 <r-link name="home">Home</r-link>
-<r-link name="user" param-userName="john">View Profile</r-link>
-<r-link name="order" param-orderId="123">Order Details</r-link>
+<r-link name="user" param-user-name="john">View Profile</r-link>
+<r-link name="order" param-order-id="123">Order Details</r-link>
+```
+
+Multi-word parameter names can be written in either kebab-case or camelCase. Both target the same route parameter (e.g. `:userName`):
+
+```html
+<r-link name="user" param-user-name="john">Kebab-case</r-link>
+<r-link name="user" param-userName="john">camelCase</r-link>
 ```
 
 ### Programmatic Navigation

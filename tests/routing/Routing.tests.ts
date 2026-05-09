@@ -88,6 +88,23 @@ describe('Router', () => {
                 childId: 42
             });
         });
+
+        it('should resolve_camelCase_param_when_input_key_is_lowercased', () => {
+            const result = findRouteByName(routes, 'nested', {
+                parentid: 'parent1',
+                childid: 42
+            });
+            expect(result?.urlSegments).toEqual(['parent', 'parent1', 'child', '42']);
+            expect(result?.params).toEqual({
+                parentId: 'parent1',
+                childId: 42
+            });
+        });
+
+        it('should normalize_returned_params_to_route_defined_casing', () => {
+            const result = findRouteByName(routes, 'user', { ID: 'john' });
+            expect(result?.params).toEqual({ id: 'john' });
+        });
     });
 
     describe('navigate', () => {

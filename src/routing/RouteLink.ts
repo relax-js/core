@@ -23,7 +23,8 @@ export class RouteLink extends HTMLElement {
         const params: Record<string, string> = {};
         for (const attr of Array.from(this.attributes)) {
             if (attr.name.startsWith('param-')) {
-                const paramName = attr.name.substring(6);
+                const raw = attr.name.substring(6);
+                const paramName = raw.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
                 params[paramName] = attr.value;
             }
         }

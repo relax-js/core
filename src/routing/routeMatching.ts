@@ -128,29 +128,43 @@ class RouteImp {
      */
     buildUrl(routeData: RouteData): RouteMatchResult | null {
         const urlSegments: string[] = [];
+        const params: RouteData = {};
+
+        const lowerIndex: Record<string, string> = {};
+        for (const key of Object.keys(routeData)) {
+            lowerIndex[key.toLowerCase()] = key;
+        }
+
         for (let index = 0; index < this.segments.length; index++) {
             const ourSegment = this.segments[index];
             if (ourSegment.paramName) {
-                var value = routeData[ourSegment.paramName];
+                let value = routeData[ourSegment.paramName];
+                if (value === undefined) {
+                    const matched = lowerIndex[ourSegment.paramName.toLowerCase()];
+                    if (matched !== undefined) {
+                        value = routeData[matched];
+                    }
+                }
                 if (!value) {
                     throw new Error(
                         `Route "${
                             this.route.name
                         }" did not get value for parameter "${
                             ourSegment.paramName
-                        } from the provided routeData: "${JSON.stringify(
+                        }" from the provided routeData: "${JSON.stringify(
                             routeData
                         )}".`
                     );
                 }
 
+                params[ourSegment.paramName] = value;
                 urlSegments.push(value.toString());
             } else {
                 urlSegments.push(ourSegment.getValue('').toString());
             }
         }
 
-        return { route: this.route, params: routeData, urlSegments };
+        return { route: this.route, params, urlSegments };
     }
 
 }

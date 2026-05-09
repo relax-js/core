@@ -17,6 +17,7 @@ describe('RouteLink', () => {
         { name: 'search', path: '/search' },
         { name: 'product', path: '/products/:id' },
         { name: 'test', path: '/test' },
+        { name: 'program', path: '/programs/:programId' },
     ];
 
     beforeEach(() => {
@@ -75,6 +76,38 @@ describe('RouteLink', () => {
         expect(capturedEvent!.route.name).toBe('user');
         expect(capturedEvent!.routeData).toEqual(
             expect.objectContaining({ id: '123' })
+        );
+    });
+
+    it('should convert kebab_case_param_attribute_to_camelCase', () => {
+        let capturedEvent: NavigateRouteEvent | null = null;
+        document.addEventListener('rlx.navigateRoute', (e: any) => {
+            capturedEvent = e;
+        });
+
+        element.setAttribute('name', 'program');
+        element.setAttribute('param-program-id', '42');
+        element.click();
+
+        expect(capturedEvent).not.toBeNull();
+        expect(capturedEvent!.routeData).toEqual(
+            expect.objectContaining({ programId: '42' })
+        );
+    });
+
+    it('should resolve_camelCase_param_attribute_lowercased_by_DOM', () => {
+        let capturedEvent: NavigateRouteEvent | null = null;
+        document.addEventListener('rlx.navigateRoute', (e: any) => {
+            capturedEvent = e;
+        });
+
+        element.setAttribute('name', 'program');
+        element.setAttribute('param-programId', '42');
+        element.click();
+
+        expect(capturedEvent).not.toBeNull();
+        expect(capturedEvent!.routeData).toEqual(
+            expect.objectContaining({ programId: '42' })
         );
     });
 

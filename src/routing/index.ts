@@ -20,6 +20,7 @@ export {
     registerRouteTarget,
     unregisterRouteTarget,
     clearPendingNavigations,
+    getTargetHistory,
 } from './routeTargetRegistry';
 
 export {
@@ -33,8 +34,14 @@ export {
     defineRoutes,
     startRouting,
     navigate,
+    navigateBack,
+    navigateForward,
+    canGoBack,
+    canGoForward,
     printRoutes,
 } from './navigation';
 
-export { RouteLink } from './RouteLink';
+export { NavigationHistory, type NavigationEntry } from './NavigationHistory';
+
+export { RouteLink, type RouteLinkDirection } from './RouteLink';
 export { RouteTarget } from './RoutingTarget';

@@ -38,6 +38,27 @@ For complex values, prefer the `params` JSON attribute below — JSON keys prese
 <r-link name="preview" target="modal">Preview</r-link>
 ```
 
+### Back / Forward Links
+
+Use `direction="back"` or `direction="forward"` to step through a target's navigation history. Combine with `target` to control a specific named target; omit `target` to control the default one.
+
+```html
+<r-link direction="back">Back</r-link>
+<r-link direction="forward">Forward</r-link>
+<r-link direction="back" target="modal">Close step</r-link>
+```
+
+When there is no history to walk, the element sets `aria-disabled="true"` so CSS can style it:
+
+```css
+r-link[aria-disabled="true"] {
+    opacity: 0.4;
+    pointer-events: none;
+}
+```
+
+`name`, `param-*`, and `params` are ignored when `direction` is set.
+
 ### Complex Parameters via JSON
 
 ```html
@@ -50,10 +71,11 @@ For complex values, prefer the `params` JSON attribute below — JSON keys prese
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `name` | `string` | Route name to navigate to (required) |
+| `name` | `string` | Route name to navigate to (required, unless `direction` is set) |
 | `target` | `string` | Target `r-route-target` name |
 | `params` | `string` | JSON object with additional route data |
 | `param-*` | `string` | Individual route parameters (e.g., `param-id="123"`). Kebab-case is converted to camelCase (`param-program-id` → `programId`). |
+| `direction` | `'back' \| 'forward'` | Walks the target's history instead of navigating to a route. Sets `aria-disabled="true"` when no history is available. |
 
 ## Behavior
 

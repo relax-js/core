@@ -142,10 +142,40 @@ Routes without a `target` property render in the default (unnamed) target.
 The router integrates with the browser's History API:
 
 - `navigate()` calls `history.pushState()` to add entries
-- Back/forward buttons trigger navigation to previous routes (components receive `loadRoute` again)
+- Back/forward buttons replay previous routes (components receive `loadRoute` again with the original route data)
 - `startRouting()` reads the current URL and navigates on page load
 
 URLs display the route path (e.g., `/users/john`), not the HTML file.
+
+### Back/Forward Navigation
+
+Each `<r-route-target>` keeps its own navigation history. The history records every route that was rendered into that target. Three things can walk a target's history:
+
+- The **browser back/forward buttons** (replays automatically via `popstate`).
+- The **programmatic API**: `navigateBack()`, `navigateForward()`, `canGoBack()`, `canGoForward()`.
+- The **`<r-link direction="back">`** and **`<r-link direction="forward">`** components for declarative back/forward links.
+
+Histories are independent: navigating back in a `modal` target does not affect the main content target.
+
+```typescript
+import { navigateBack, navigateForward, canGoBack } from '@relax.js/core/routing';
+
+// Step the default target back
+if (canGoBack()) navigateBack();
+
+// Step a named target back
+navigateBack('modal');
+```
+
+Replayed navigations carry `isReplay: true` and re-use the original `entryId`, so listeners and analytics can distinguish them from fresh navigations:
+
+```typescript
+document.addEventListener('rlx.navigateRoute', (e) => {
+    if (e.isReplay) {
+        console.log('back/forward replay, original entry', e.entryId);
+    }
+});
+```
 
 ## Layouts
 
@@ -302,6 +332,10 @@ Routing errors are reported through the global [error handler](../Errors.md). Th
 | `defineRoutes(routes)` | Register routes at startup |
 | `startRouting()` | Initialize router and navigate to current URL |
 | `navigate(nameOrUrl, options?)` | Navigate to a route |
+| `navigateBack(target?)` | Replay the previous navigation in a target's history |
+| `navigateForward(target?)` | Replay the next navigation in a target's history |
+| `canGoBack(target?)` | `true` when a target has a previous entry |
+| `canGoForward(target?)` | `true` when a target has a forward entry |
 | `matchRoute(routes, nameOrUrl, params?)` | Match without navigating |
 | `findRouteByUrl(routes, path)` | Match by URL pattern |
 | `findRouteByName(routes, name, params)` | Match by route name |

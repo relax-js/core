@@ -97,6 +97,12 @@ const target = document.querySelector<RouteTarget>('r-route-target[name="modal"]
 target.close();
 ```
 
+## Per-Target Navigation History
+
+Each `<r-route-target>` owns its own back/forward history. Navigations dispatched to a target are recorded; the [Back/Forward Navigation](Routing.md#backforward-navigation) section of the routing guide covers the public API (`navigateBack`, `navigateForward`, `canGoBack`, `canGoForward`) and the `<r-link direction="back">` helper.
+
+Histories are tied to the target's `name`. If a target is removed and a new target with the same name is later connected, its previous history is restored so back/forward keep working across layout transitions.
+
 ## View Transitions
 
 Route transitions are automatically animated using the View Transitions API when the browser supports it. The default effect is a crossfade. Customize with CSS:

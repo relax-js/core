@@ -5,6 +5,22 @@ import type { Route, RouteData } from './types';
  */
 export class NavigateRouteEvent extends Event {
     static NAME: string = 'rlx.navigateRoute';
+
+    /**
+     * Identifies the entry in the target's NavigationHistory and in
+     * `history.state.entryId`. Set by `navigate()` for every navigation.
+     * Optional only so old call-sites that constructed events manually keep
+     * compiling.
+     */
+    entryId?: number;
+
+    /**
+     * `true` when the event is a replay of a previously recorded navigation
+     * (e.g. triggered by browser back/forward or `navigateBack`/`navigateForward`).
+     * Tells the target registry to move its index instead of recording a new entry.
+     */
+    isReplay: boolean = false;
+
     constructor(
         /**
          * Matched route.

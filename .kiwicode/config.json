@@ -1,0 +1,27 @@
+{
+  "steps": {
+    "planner": {
+      "provider": "claude-sdk",
+      "model": "claude-sonnet-4-6"
+    },
+    "discovery": {
+      "provider": "ollama",
+      "model": "qwen3:8b"
+    },
+    "impl_plan": {
+      "provider": "claude-sdk",
+      "model": "claude-opus-4-7"
+    }
+  },
+  "verifier": {
+    "provider": "ollama",
+    "model": "qwen3:8b"
+  },
+  "research": null,
+  "providers": {
+    "claude_api": null,
+    "claude_sdk": null,
+    "ollama": null,
+    "openai_compat": null
+  }
+}

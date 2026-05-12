@@ -20,15 +20,37 @@ import {
     RouteError,
     RouteGuardError,
     type Route,
+    type RouteData,
     type RouteParamType,
     type RouteMatchResult,
     type NavigateOptions,
 } from './types';
 import { NavigateRouteEvent } from './NavigateRouteEvent';
-import { matchRoute } from './routeMatching';
-import { initRouteTargetListener } from './routeTargetRegistry';
+import { matchRoute, findRouteByName, findRouteByUrl } from './routeMatching';
+import { initRouteTargetListener, getTargetHistory } from './routeTargetRegistry';
 import { RouteLink } from './RouteLink';
 import { RouteTarget } from './RoutingTarget';
+import type { NavigationEntry } from './NavigationHistory';
+
+/**
+ * State stored in `history.pushState` / `history.replaceState`.
+ * Contains everything the popstate handler needs to replay a navigation
+ * into the correct route target.
+ */
+interface NavigationState {
+    target?: string;
+    routeName?: string;
+    params: RouteData;
+    urlSegments: string[];
+    entryId: number;
+}
+
+let nextEntryId = 1;
+let popstateAttached = false;
+
+function allocEntryId(): number {
+    return nextEntryId++;
+}
 
 /**
  * Used to keep track of current main HTML file,
@@ -166,18 +188,26 @@ export function startRouting() {
         return;
     }
 
-    history.replaceState(
-        routeResult.urlSegments,
-        '',
-        '/' + routeResult.urlSegments.join('/')
-    );
+    attachPopstateListener();
+
+    const target = routeResult.route.target;
+    const entryId = allocEntryId();
+    const state: NavigationState = {
+        target,
+        routeName: routeResult.route.name,
+        params: routeResult.params,
+        urlSegments: routeResult.urlSegments,
+        entryId,
+    };
+    history.replaceState(state, '', '/' + routeResult.urlSegments.join('/'));
 
     const e = new NavigateRouteEvent(
         routeResult.route,
         routeResult.urlSegments,
         routeResult.params,
-        routeResult.route.target
+        target
     );
+    e.entryId = entryId;
     document.dispatchEvent(e);
 }
 
@@ -205,15 +235,21 @@ export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
         return;
     }
 
+    attachPopstateListener();
+
     const target = options?.target ?? routeResult.route.target;
+    const entryId = allocEntryId();
     const ourUrl = routeResult.urlSegments.join('/');
     const currentUrl = window.location.pathname.replace(/^\/|\/$/g, '');
+    const state: NavigationState = {
+        target,
+        routeName: routeResult.route.name,
+        params: routeResult.params,
+        urlSegments: routeResult.urlSegments,
+        entryId,
+    };
     if (currentUrl != ourUrl) {
-        history.pushState(
-            routeResult.urlSegments,
-            '',
-            '/' + routeResult.urlSegments.join('/')
-        );
+        history.pushState(state, '', '/' + routeResult.urlSegments.join('/'));
     }
     const e = new NavigateRouteEvent(
         routeResult.route,
@@ -221,7 +257,116 @@ export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
         routeResult.params,
         target
     );
+    e.entryId = entryId;
     document.dispatchEvent(e);
+}
+
+/**
+ * Returns `true` when the named target has a previous navigation it can
+ * step back to. Pass `undefined` (or omit) for the default unnamed target.
+ *
+ * @example
+ * if (canGoBack()) navigateBack();
+ */
+export function canGoBack(target?: string): boolean {
+    return getTargetHistory(target)?.canGoBack() ?? false;
+}
+
+/**
+ * Returns `true` when the named target was stepped back and can be stepped
+ * forward again. Pass `undefined` for the default unnamed target.
+ */
+export function canGoForward(target?: string): boolean {
+    return getTargetHistory(target)?.canGoForward() ?? false;
+}
+
+/**
+ * Replays the previous navigation in the named target's history.
+ * Updates the browser URL bar via `pushState`. Does nothing if the target
+ * has no prior entry.
+ *
+ * @param target - Target name. Omit for the default unnamed target.
+ *
+ * @example
+ * navigateBack();          // step the default target back
+ * navigateBack('modal');   // step the modal target back independently
+ */
+export function navigateBack(target?: string): void {
+    const history = getTargetHistory(target);
+    const entry = history?.back();
+    if (entry) replayEntry(entry);
+}
+
+/**
+ * Replays the next navigation in the named target's history (after a back).
+ * Does nothing if the target has no forward entry.
+ */
+export function navigateForward(target?: string): void {
+    const history = getTargetHistory(target);
+    const entry = history?.forward();
+    if (entry) replayEntry(entry);
+}
+
+function replayEntry(entry: NavigationEntry): void {
+    const routeResult = findRouteByName(internalRoutes, entry.routeName, entry.params);
+    if (!routeResult) {
+        const error = reportError('Cannot replay navigation entry', {
+            routeName: entry.routeName,
+            target: entry.target,
+        });
+        if (error) throw error;
+        return;
+    }
+    const state: NavigationState = {
+        target: entry.target,
+        routeName: entry.routeName,
+        params: entry.params,
+        urlSegments: entry.urlSegments,
+        entryId: entry.entryId,
+    };
+    window.history.pushState(state, '', '/' + entry.urlSegments.join('/'));
+    dispatchReplay(routeResult.route, entry);
+}
+
+function dispatchReplay(route: Route, entry: NavigationEntry): void {
+    const evt = new NavigateRouteEvent(
+        route,
+        entry.urlSegments,
+        entry.params,
+        entry.target
+    );
+    evt.isReplay = true;
+    evt.entryId = entry.entryId;
+    document.dispatchEvent(evt);
+}
+
+function attachPopstateListener(): void {
+    if (popstateAttached) return;
+    popstateAttached = true;
+    window.addEventListener('popstate', onPopState);
+}
+
+function onPopState(e: PopStateEvent): void {
+    const state = e.state as NavigationState | null;
+    if (!state || typeof state !== 'object' || !('entryId' in state)) return;
+
+    let routeResult: RouteMatchResult | null = null;
+    if (state.routeName) {
+        routeResult = findRouteByName(internalRoutes, state.routeName, state.params);
+    }
+    if (!routeResult) {
+        routeResult = findRouteByUrl(internalRoutes, '/' + state.urlSegments.join('/'));
+    }
+    if (!routeResult) return;
+
+    const entry: NavigationEntry = {
+        routeName: state.routeName ?? routeResult.route.name ?? '',
+        params: state.params,
+        target: state.target,
+        urlSegments: state.urlSegments,
+        entryId: state.entryId,
+    };
+    dispatchReplay(routeResult.route, entry);
 }
 
 function findRoute(routeNameOrUrl: string, options?: NavigateOptions) {

@@ -11,6 +11,7 @@ A full-featured template engine for web components. Compiles HTML templates with
 - **Array Indexing** - `{{items[0]}}`, `{{users[1].name}}`
 - **Conditional Rendering** - `if` and `unless` attributes
 - **Loop Rendering** - `loop="item in items"` directive
+- **Event Handling** - `r-<event>="handler(args)"` wires DOM events to functions
 - **Type-Safe** - Full TypeScript support
 - **Performance Optimized** - Expression caching and memoized re-renders
 
@@ -272,6 +273,113 @@ Loop with array indexing:
 ```html
 <li loop="item in data.lists[0]">{{item}}</li>
 ```
+
+## Event Handling
+
+Add an `r-<event>` attribute to call a function when that DOM event fires. The
+part after `r-` is the event name, so `r-click`, `r-change`, `r-input`,
+`r-keypress`, and `r-submit` all work. The function name is looked up in the
+functions context (the second argument to `render`), and its arguments are
+resolved against the current data:
+
+```typescript
+const tpl = compileTemplate(`
+    <button r-click="save()">Save</button>
+`);
+
+tpl.render({}, { save: () => console.log('saved') });
+document.body.appendChild(tpl.content);
+```
+
+The event name is only wired when the element actually supports it. An
+unrecognised name such as `r-clik` is reported through the `onError` callback
+instead of failing silently.
+
+The listener is attached once per element. Each render only refreshes the data
+the handler closes over, so handlers keep working as loops reuse, add, and
+remove rows.
+
+### Passing data to handlers
+
+Arguments to the handler are resolved the same way as `{{expression}}` values,
+so an object in the context is passed straight through as that object:
+
+```html
+<button r-click="removeRow(row)">x</button>
+<button r-click="select(row.owner)">owner</button>
+<input r-change="rename(row, event)">
+```
+
+Each argument can be:
+
+- A **context path** - `row`, `row.owner`, `items[0]` - resolved against the
+  current data and passed as-is (objects stay objects).
+- A **string literal** - `'apple'` or `"apple"`.
+- A **number literal** - `3`, `1.5`.
+- The literal `event` - the native DOM event.
+
+```typescript
+const tpl = compileTemplate(`
+    <button r-click="capture(event, 'save')">Save</button>
+`);
+
+tpl.render({}, {
+    capture: (event, label) => console.log(label, event.target),
+});
+```
+
+### Handling events inside loops
+
+Inside a `loop`, the iteration alias is in scope, so each row's handler
+receives that row's object. One handler in the functions context covers every
+row, including rows added on later renders:
+
+```typescript
+let state = {
+    rows: [
+        { id: 1, name: 'Apple' },
+        { id: 2, name: 'Banana' },
+    ],
+};
+
+const tpl = compileTemplate(`
+    <ul>
+        <li loop="row in rows">
+            {{row.name}}
+            <button r-click="removeRow(row)">x</button>
+        </li>
+    </ul>
+`);
+
+const fns = {
+    removeRow: (row) => {
+        // row is the object for the clicked line
+        state = { rows: state.rows.filter((r) => r !== row) };
+        tpl.render(state, fns);
+    },
+};
+
+tpl.render(state, fns);
+document.body.appendChild(tpl.content);
+```
+
+### Always render with a fresh context object
+
+`render()` only updates the DOM when the context object is a different object
+than the previous render. Changing an array in place and calling `render()`
+with the same object does nothing:
+
+```typescript
+// does NOT update the DOM
+state.rows.push(newRow);
+tpl.render(state);
+
+// updates the DOM
+tpl.render({ rows: [...state.rows, newRow] });
+```
+
+This matters most after a handler changes the data: build a new context object
+so the next `render()` takes effect.
 
 ## Configuration
 

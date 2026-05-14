@@ -7,7 +7,7 @@ This module provides templating utilities for rendering dynamic HTML content.
 | Feature | Description | Use Case |
 |---------|-------------|----------|
 | [html](html.md) | Tagged template literal with update support | Single-use templates with in-place updates |
-| [compileTemplate](template.md) | Full-featured template compiler | Reusable templates with loops, conditionals, pipes |
+| [compileTemplate](template.md) | Full-featured template compiler | Reusable templates with loops, conditionals, pipes, event handling |
 | [Pipes](../Pipes.md) | Value transformation functions | Format dates, currencies, text in templates |
 | [TableRenderer](TableRenderer.md) | Table row renderer for Web Components | Data tables with row updates and button handlers |
 
@@ -51,4 +51,5 @@ renderer.updateRow(id, newData);
 
 - **Need in-place updates?** → Use `html`
 - **Need loops/conditionals?** → Use `compileTemplate`
+- **Need loops together with event handlers?** → Use `compileTemplate` with `r-<event>` attributes
 - **Building a data table?** → Use `TableRenderer`

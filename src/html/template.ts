@@ -331,7 +331,70 @@ function attributeInterpolationPatcher(node: Node, _get: Getter, config: EngineC
         return (ctx: Context, fns?: FunctionsContext) => setters.forEach(fn => fn(ctx, fns));
     }
 }
-  
+
+/**
+ * Binds event handlers declared with `r-<event>="handler(args)"`, for example
+ * `r-click`, `r-change`, or `r-keypress`. The part after `r-` is treated as a
+ * DOM event name and is only wired when the element actually supports it
+ * (checked via the matching `on<event>` property); an unrecognised name is
+ * reported as an error.
+ *
+ * The handler name is resolved from the functions context passed to `render`.
+ * Arguments are resolved against the current data context, so inside a loop
+ * the iteration alias (`row`) and its nested values can be passed straight to
+ * the handler. The literal `event` resolves to the native DOM event.
+ *
+ * Listeners are attached once per element. Each render only refreshes the data
+ * the listeners close over, so handlers keep working as loops reuse, add, or
+ * remove rows.
+ */
+function eventPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | void {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const element = node as Element;
+    const tag = element.tagName.toLowerCase();
+    const rAttributes = Array.from(element.attributes).filter(attr => attr.name.startsWith('r-'));
+    if (rAttributes.length === 0) return;
+
+    const updaters: Setter[] = [];
+
+    for (const attr of rAttributes) {
+        const eventName = attr.name.slice(2);
+        const expr = attr.value;
+        const debugInfo = `${attr.name}="${expr}" on <${tag}>`;
+        element.removeAttribute(attr.name);
+
+        if (!(`on${eventName}` in element)) {
+            handleError(config, `"${attr.name}" is not a known event for <${tag}>`, debugInfo);
+            continue;
+        }
+
+        const parsed = parseExpression(expr);
+        if (parsed.type !== 'function') {
+            handleError(config, `${attr.name} must be a function call, got "${expr}"`, debugInfo);
+            continue;
+        }
+
+        let currentCtx: Context | null = null;
+        let currentFns: FunctionsContext | undefined = undefined;
+
+        element.addEventListener(eventName, (event) => {
+            if (!currentCtx) return;
+            const ctxWithEvent = { ...currentCtx, event } as unknown as Context;
+            evaluateExpression(parsed, ctxWithEvent, currentFns, config, debugInfo);
+        });
+
+        updaters.push((ctx: Context, fns?: FunctionsContext) => {
+            currentCtx = ctx;
+            currentFns = fns;
+        });
+    }
+
+    if (updaters.length > 0) {
+        return (ctx: Context, fns?: FunctionsContext) => updaters.forEach(fn => fn(ctx, fns));
+    }
+}
+
 /**
  * Caches the detached element+renderer when hiding so that re-showing
  * skips the clone + compile overhead. Render-before-insert order is
@@ -511,10 +574,11 @@ const structuralPatchers: Patcher[] = [
     unlessPatcher
 ];
 
-/** Content patchers resolve mustache expressions in text nodes and attributes. */
+/** Content patchers resolve mustache expressions and bind `r-<event>` handlers. */
 const contentPatchers: Patcher[] = [
     textNodePatcher,
     attributeInterpolationPatcher,
+    eventPatcher,
 ];
 
 /**
@@ -593,6 +657,9 @@ export interface CompiledTemplate {
  * - `if="condition"` - Renders element only when condition is truthy
  * - `unless="condition"` - Renders element only when condition is falsy
  * - `loop="item in items"` - Repeats element for each array item
+ * - `r-<event>="handler(args)"` - Calls a function from the functions context
+ *   on the named DOM event (`r-click`, `r-change`, `r-keypress`, ...);
+ *   arguments resolve against the current data context
  *
  * @param templateStr - HTML template string with mustache expressions
  * @param config - Optional engine configuration
@@ -617,6 +684,24 @@ export interface CompiledTemplate {
  *     onError: (msg) => console.error(msg)
  * });
  * render({}); // Throws error for missing path
+ *
+ * @example
+ * // Event handling in loops with r-<event>
+ * const tpl = compileTemplate(`
+ *     <ul>
+ *         <li loop="row in rows">
+ *             {{row.name}}
+ *             <button r-click="removeRow(row)">x</button>
+ *         </li>
+ *     </ul>
+ * `);
+ *
+ * // The handler is looked up in the functions context passed to render.
+ * tpl.render(
+ *     { rows: [{ id: 1, name: 'Apple' }] },
+ *     { removeRow: (row) => console.log('remove', row.id) }
+ * );
+ * document.body.appendChild(tpl.content);
  */
 export function compileTemplate(templateStr: string, config: EngineConfig = { strict: false }): CompiledTemplate {
     const parser = new DOMParser();

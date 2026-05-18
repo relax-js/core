@@ -73,6 +73,35 @@ Set attribute values dynamically:
 <a href="/users/{{user.id}}" class="{{linkClass}}">View Profile</a>
 ```
 
+Most attributes are written as plain strings. Two cases are handled specially so
+bindings behave the way you expect on form controls:
+
+**Live form values (`value`, `checked`, `selected`)** are written to the
+element's property, not just the HTML attribute. The HTML attribute only seeds
+the *default* value, so if you cleared a field and re-rendered it with new data,
+a plain attribute write would leave the old text on screen. Property binding
+keeps the input in sync every render:
+
+```html
+<input value="{{name}}">
+<input type="checkbox" checked="{{isActive}}">
+```
+
+**Boolean values toggle the attribute on and off.** When a binding resolves to a
+real boolean, the attribute is added when `true` and removed when `false`. This
+makes `disabled` work as expected. A plain string write would produce
+`disabled="false"`, which the browser still treats as disabled:
+
+```html
+<button disabled="{{isBusy}}">Save</button>
+```
+
+```typescript
+const { content, render } = compileTemplate('<button disabled="{{isBusy}}">Save</button>');
+render({ isBusy: true });   // button is disabled
+render({ isBusy: false });  // disabled attribute is removed
+```
+
 ### Array Indexing
 
 Access array elements by index:

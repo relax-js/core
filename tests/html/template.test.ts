@@ -121,6 +121,47 @@ describe('m.ts template engine', () => {
             expect(el?.getAttribute('data-id')).toBe('123');
             expect(el?.getAttribute('data-name')).toBe('test');
         });
+
+        it('input value binding updates the live property so a repopulated field shows new data', () => {
+            const { content, render } = compileTemplate('<input value="{{name}}">');
+            const input = content.querySelector('input') as HTMLInputElement;
+
+            render({ name: 'Alice' });
+            expect(input.value).toBe('Alice');
+
+            render({ name: 'Bob' });
+            expect(input.value).toBe('Bob');
+        });
+
+        it('checked binding updates the live checked property of a checkbox', () => {
+            const { content, render } = compileTemplate('<input type="checkbox" checked="{{on}}">');
+            const input = content.querySelector('input') as HTMLInputElement;
+
+            render({ on: true });
+            expect(input.checked).toBe(true);
+
+            render({ on: false });
+            expect(input.checked).toBe(false);
+        });
+
+        it('boolean disabled binding removes the attribute when the value is false', () => {
+            const { content, render } = compileTemplate('<button disabled="{{busy}}">Save</button>');
+            const button = content.querySelector('button') as HTMLButtonElement;
+
+            render({ busy: true });
+            expect(button.hasAttribute('disabled')).toBe(true);
+            expect(button.disabled).toBe(true);
+
+            render({ busy: false });
+            expect(button.hasAttribute('disabled')).toBe(false);
+            expect(button.disabled).toBe(false);
+        });
+
+        it('value property binding falls back to setAttribute on elements without a value property', () => {
+            const { content, render } = compileTemplate('<div value="{{v}}"></div>');
+            render({ v: 'plain' });
+            expect(content.querySelector('div')?.getAttribute('value')).toBe('plain');
+        });
     });
 
     describe('if conditional', () => {

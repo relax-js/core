@@ -12,7 +12,7 @@
         "src/di/index.ts",
         "src/collections/Index.ts"
     ],
-    "json": "docs/api.json",
+    "json": "docs/api/api.json",
     "tsconfig": "tsconfig.json",
     "excludePrivate": true,
     "excludeInternal": true,

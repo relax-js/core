@@ -305,6 +305,36 @@ function textNodePatcher(node: Node, _get: Getter, config: EngineConfig): Setter
     };
 }
   
+/**
+ * Attributes whose content attribute does not stay in sync with the live
+ * property the user actually sees. Setting `value`/`checked`/`selected` via
+ * `setAttribute` only writes the *default* (`defaultValue`/`defaultChecked`),
+ * so a form control that is cleared and repopulated programmatically would
+ * keep showing stale data. For these we write the property directly.
+ */
+const liveValueAttributes = ['value', 'checked', 'selected'];
+
+/**
+ * Resolves `{{expr}}` inside element attributes and keeps them updated on
+ * every render.
+ *
+ * Three binding modes, chosen by the attribute and the resolved value:
+ * - `value`/`checked`/`selected` are written to the matching DOM *property*,
+ *   because the content attribute only seeds the default and would not
+ *   reflect a programmatic clear-and-repopulate.
+ * - A boolean value is applied with `toggleAttribute`, so `disabled="{{busy}}"`
+ *   adds the attribute when `true` and removes it when `false` (a plain
+ *   `setAttribute` would leave `disabled="false"`, which is still disabled).
+ * - Everything else is a normal string `setAttribute`.
+ *
+ * @example
+ * // Property binding keeps the input in sync after a reset
+ * compileTemplate('<input value="{{name}}">');
+ *
+ * @example
+ * // Boolean binding toggles the attribute on and off
+ * compileTemplate('<button disabled="{{busy}}">Save</button>');
+ */
 function attributeInterpolationPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | void {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
 
@@ -322,7 +352,13 @@ function attributeInterpolationPatcher(node: Node, _get: Getter, config: EngineC
             const debugInfo = `Attribute: ${name} on <${element.tagName.toLowerCase()}>`;
             setters.push((ctx: Context, fns?: FunctionsContext) => {
                 const value = evaluateExpression(parsed, ctx, fns, config, debugInfo);
-                element.setAttribute(name, String(value));
+                if (liveValueAttributes.includes(name) && name in element) {
+                    (element as unknown as Record<string, unknown>)[name] = value;
+                } else if (typeof value === 'boolean') {
+                    element.toggleAttribute(name, value);
+                } else {
+                    element.setAttribute(name, String(value));
+                }
             });
         }
     }

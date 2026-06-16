@@ -1,6 +1,6 @@
 {
     "name": "@relax.js/core",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Ship faster with less code. Web Component library with routing, forms, DI, templating, and i18n. No virtual DOM, no build magic, no surprise re-renders.",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
@@ -21,9 +21,6 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
-    "dependencies": {
-        "reflect-metadata": "^0.2.2"
-    },
     "devDependencies": {
         "@types/jsdom": "^21.1.7",
         "@vitest/coverage-v8": "^3.0.5",

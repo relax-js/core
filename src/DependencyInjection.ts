@@ -206,7 +206,7 @@ class Registration {
  */
 export class ServiceCollection {
     private servicesByKey = new Map<string, Registration>();
-    private servicesByClassName = new Map<string, Registration>();
+    private servicesByType = new Map<Constructor, Registration>();
 
     /**
      * Registers a service with full configuration options.
@@ -230,7 +230,7 @@ export class ServiceCollection {
         if (options.key) {
             this.servicesByKey.set(options.key, reg);
         }
-        this.servicesByClassName.set(constructor.name, reg);
+        this.servicesByType.set(constructor, reg);
     }
 
     /**
@@ -244,29 +244,16 @@ export class ServiceCollection {
         constructor: Constructor<T>,
         options?: RegistrationOptions
     ): void {
-        this.checkNameCollision(constructor);
         if (options) this.validateRegistration(constructor, options);
 
         const reg = new Registration(constructor, options?.scope ?? 'global', options?.inject ?? [], options?.properties, options?.key, options?.instance);
         if (options?.key) {
             this.servicesByKey.set(options.key, reg);
         }
-        this.servicesByClassName.set(constructor.name, reg);
-    }
-
-    private checkNameCollision<T extends object>(constructor: Constructor<T>): void {
-        const existing = this.servicesByClassName.get(constructor.name);
-        if (existing && existing.classConstructor !== constructor) {
-            const error = reportError('Service name collision: different class registered with same name', {
-                service: constructor.name,
-            });
-            if (error) throw error;
-        }
+        this.servicesByType.set(constructor, reg);
     }
 
     private validateRegistration<T extends object>(constructor: Constructor<T>, options: RegistrationOptions): void {
-        this.checkNameCollision(constructor);
-
         if (options.key) {
             const existingByKey = this.servicesByKey.get(options.key);
             if (existingByKey && existingByKey.classConstructor !== constructor) {
@@ -298,7 +285,7 @@ export class ServiceCollection {
         if (typeof key === 'string') {
             return this.servicesByKey.get(key);
         }
-        return this.servicesByClassName.get(key.name);
+        return this.servicesByType.get(key);
     }
 
     /**
@@ -314,7 +301,7 @@ export class ServiceCollection {
             const service = typeof key === 'string' ? key : key.name;
             const error = reportError(`Failed to resolve service '${service}'`, {
                 service,
-                registeredTypes: Array.from(this.servicesByClassName.keys()),
+                registeredTypes: Array.from(this.servicesByType.keys()).map(c => c.name),
                 registeredKeys: Array.from(this.servicesByKey.keys()),
             });
             if (error) throw error;
@@ -353,7 +340,7 @@ const injectedFields = new WeakMap<object, Map<string, string>>();
  * const userService = container.resolve(UserService);
  */
 export class ServiceContainer {
-    private instances = new Map<string, any>();
+    private instances = new Map<string | Constructor, any>();
 
     /**
      * Creates a new container backed by the given service collection.
@@ -375,15 +362,14 @@ export class ServiceContainer {
      * const service = container.resolve(MyService);
      */
     resolve<T extends object>(keyOrType: string | Constructor<T>): T {
-        const key = typeof keyOrType === 'string' ? keyOrType : keyOrType.name;
-
-        if (this.instances.has(key)) {
-            return this.instances.get(key);
+        if (this.instances.has(keyOrType)) {
+            return this.instances.get(keyOrType);
         }
 
         const registration = this.serviceCollection.get(keyOrType);
         if (!registration) {
-            const error = reportError(`Failed to resolve service '${key}'`, { service: key });
+            const name = typeof keyOrType === 'string' ? keyOrType : keyOrType.name;
+            const error = reportError(`Failed to resolve service '${name}'`, { service: name });
             if (error) throw error;
             return undefined as unknown as T;
         }
@@ -391,13 +377,13 @@ export class ServiceContainer {
         if (registration.instance) {
             const inst = registration.instance as T;
             this.injectFields(inst, registration);
-            this.instances.set(key, inst);
+            this.instances.set(keyOrType, inst);
             return inst;
         }
 
         const instance = this.createInstance<T>(registration);
         if (registration.scope === 'global') {
-            this.instances.set(key, instance);
+            this.instances.set(keyOrType, instance);
         }
         this.injectFields(instance, registration);
 

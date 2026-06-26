@@ -44,16 +44,6 @@ describe('ServiceCollection', () => {
         });
     });
 
-    test('throws on name collision from different classes', () => {
-        class MyService {}
-        collection.registerByType(MyService);
-
-        // Different class with same name
-        const OtherClass = { name: 'MyService' } as any;
-        expect(() => collection.registerByType(OtherClass))
-            .toThrow(/name collision/);
-    });
-
     test('allows re-registering the same class', () => {
         class MyService {}
         collection.registerByType(MyService);
@@ -104,6 +94,82 @@ describe('ServiceCollection', () => {
             return;
         }
         expect.unreachable('should have thrown');
+    });
+});
+
+describe('minification safety', () => {
+    let collection: ServiceCollection;
+    let container: ServiceContainer;
+
+    beforeEach(() => {
+        collection = new ServiceCollection();
+        container = new ServiceContainer(collection);
+    });
+
+    const mangle = (ctor: Function, name: string) =>
+        Object.defineProperty(ctor, 'name', { value: name });
+
+    test('two distinct services mangled to the same name both register', () => {
+        class UserService {}
+        class OrderService {}
+        mangle(UserService, 'a');
+        mangle(OrderService, 'a');
+
+        collection.registerByType(UserService);
+        expect(() => collection.registerByType(OrderService)).not.toThrow();
+    });
+
+    test('two distinct services mangled to the same name resolve to their own type', () => {
+        class UserService {}
+        class OrderService {}
+        mangle(UserService, 'a');
+        mangle(OrderService, 'a');
+
+        collection.registerByType(UserService);
+        collection.registerByType(OrderService);
+
+        expect(container.resolve(UserService)).toBeInstanceOf(UserService);
+        expect(container.resolve(OrderService)).toBeInstanceOf(OrderService);
+    });
+
+    test('cached instances stay separate when class names collide', () => {
+        class UserService {}
+        class OrderService {}
+        mangle(UserService, 'a');
+        mangle(OrderService, 'a');
+
+        collection.registerByType(UserService);
+        collection.registerByType(OrderService);
+
+        const user = container.resolve(UserService);
+        const order = container.resolve(OrderService);
+        expect(user).not.toBe(order);
+        expect(container.resolve(UserService)).toBe(user);
+    });
+
+    test('dependency injection picks the right type when names collide', () => {
+        class Dependency {}
+        class Consumer {
+            constructor(public dep: Dependency) {}
+        }
+        mangle(Dependency, 'a');
+        mangle(Consumer, 'a');
+
+        collection.registerByType(Dependency);
+        collection.registerByType(Consumer, { inject: [Dependency] });
+
+        const consumer = container.resolve(Consumer);
+        expect(consumer).toBeInstanceOf(Consumer);
+        expect(consumer.dep).toBeInstanceOf(Dependency);
+    });
+
+    test('string keys still resolve independently from mangled type names', () => {
+        class CacheService {}
+        mangle(CacheService, 'a');
+
+        collection.register(CacheService, { key: 'cache', inject: [] });
+
+        expect(container.resolve('cache')).toBeInstanceOf(CacheService);
     });
 });
 

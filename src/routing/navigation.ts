@@ -173,7 +173,7 @@ export function startRouting() {
         return;
     }
 
-    const currentUrl = window.location.pathname.replace(/^\/|\/$/g, '') || '/';
+    const currentUrl = window.location.pathname || '/';
     const routeResult = findRoute(currentUrl, {});
 
     const searchParams = new URLSearchParams(window.location.search);

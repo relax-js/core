@@ -224,6 +224,59 @@ describe('Router', () => {
             expect(capturedEvent!.routeData!.q).toBe('hello');
             expect(capturedEvent!.routeData!.page).toBe('2');
         });
+
+        function captureStartRouting(path: string): NavigateRouteEvent | null {
+            history.pushState(null, '', path);
+
+            let capturedEvent: NavigateRouteEvent | null = null;
+            const handler = (e: NavigateRouteEvent) => { capturedEvent = e; };
+            document.addEventListener('rlx.navigateRoute', handler);
+
+            startRouting();
+
+            document.removeEventListener('rlx.navigateRoute', handler);
+            return capturedEvent;
+        }
+
+        it('should_match_root_url_on_full_load', () => {
+            internalRoutes.length = 0;
+            internalRoutes.push({ name: 'research-list', path: '/' });
+
+            const captured = captureStartRouting('/');
+
+            expect(captured).not.toBeNull();
+            expect(captured!.route.name).toBe('research-list');
+        });
+
+        it('should_match_single_segment_url_by_path_when_route_name_differs_from_segment', () => {
+            internalRoutes.length = 0;
+            internalRoutes.push({ name: 'profiles-list', path: '/profiles' });
+
+            const captured = captureStartRouting('/profiles');
+
+            expect(captured).not.toBeNull();
+            expect(captured!.route.name).toBe('profiles-list');
+        });
+
+        it('should_match_single_segment_url_when_route_name_equals_segment', () => {
+            internalRoutes.length = 0;
+            internalRoutes.push({ name: 'generate', path: '/generate' });
+
+            const captured = captureStartRouting('/generate');
+
+            expect(captured).not.toBeNull();
+            expect(captured!.route.name).toBe('generate');
+        });
+
+        it('should_match_nested_url_on_full_load', () => {
+            internalRoutes.length = 0;
+            internalRoutes.push({ name: 'profile-create', path: '/profiles/new' });
+
+            const captured = captureStartRouting('/profiles/new');
+
+            expect(captured).not.toBeNull();
+            expect(captured!.route.name).toBe('profile-create');
+        });
     });
 
     describe('edge cases', () => {

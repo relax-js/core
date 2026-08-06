@@ -55,7 +55,7 @@ Translation keys in the `r-pipes` namespace:
 
 ### Translation Files
 
-Pipe translations are stored in `src/i18n/locales/{locale}/r-pipes.json`:
+English and Swedish pipe translations ship with Relaxjs in the `r-pipes` namespace:
 
 ```json
 {
@@ -66,7 +66,8 @@ Pipe translations are stored in `src/i18n/locales/{locale}/r-pipes.json`:
 }
 ```
 
-To add a new locale, create `src/i18n/locales/{locale}/r-pipes.json` with the translated strings.
+To add a locale, create `locales/{locale}/r-pipes.json` in your own project with the
+translated strings and register it. See [Translations](Translations.md).
 
 ## Programmatic Usage
 

@@ -13,11 +13,26 @@
  */
 
 import { formatICU } from './icu';
+import { registerBuiltinNamespaces } from './builtins';
+import { normalizeLocale, resolveNamespace, TranslationMap } from './catalogue';
 
 type Locale = string;
 type Namespace = string;
-type TranslationMap = Record<string, string>;
 type Translations = Record<Namespace, TranslationMap>;
+
+/**
+ * Extra behaviour for a single `t()` call.
+ */
+export interface TranslateOptions {
+    /**
+     * Text to show when the key is missing, instead of the key itself.
+     *
+     * Use it for wording that must never be absent, such as a legally required
+     * notice. The fallback goes through the same formatter, so it can contain
+     * placeholders.
+     */
+    fallback?: string;
+}
 
 export type MissingTranslationHandler = (
     key: string,
@@ -55,9 +70,7 @@ const loadedNamespaces = new Set<Namespace>();
 const translations: Translations = {};
 let missingHandler: MissingTranslationHandler | null = null;
 
-function normalizeLocale(locale: string): string {
-    return locale.toLowerCase().split('-')[0];
-}
+registerBuiltinNamespaces();
 
 /**
  * Sets the current locale and loads the common namespace.
@@ -79,9 +92,27 @@ export async function setLocale(locale: string): Promise<void> {
     }
 }
 
+async function tryResolve(
+    locale: Locale,
+    namespace: Namespace,
+): Promise<TranslationMap | undefined> {
+    try {
+        return await resolveNamespace(locale, namespace);
+    } catch (err) {
+        console.warn(
+            `i18n: could not load namespace '${namespace}' for locale '${locale}'.`,
+            err,
+        );
+        return undefined;
+    }
+}
+
 /**
- * Loads a translation namespace on demand.
- * Falls back to the default locale if translations are not found.
+ * Loads a translation namespace from the catalogue.
+ * Falls back to the default locale when the namespace is not translated yet.
+ *
+ * Never rejects. A namespace nobody registered is reported as a warning so that
+ * one forgotten file cannot stop the application from starting.
  *
  * @param namespace - The namespace to load (e.g., 'shop', 'errors')
  *
@@ -92,19 +123,21 @@ export async function setLocale(locale: string): Promise<void> {
 export async function loadNamespace(namespace: Namespace): Promise<void> {
     if (loadedNamespaces.has(namespace)) return;
 
-    try {
-        const module = await import(`./locales/${currentLocale}/${namespace}.json`);
-        translations[namespace] = module.default;
-        loadedNamespaces.add(namespace);
-    } catch (err) {
-        if (currentLocale !== fallbackLocale) {
-            const fallback = await import(`./locales/${fallbackLocale}/${namespace}.json`);
-            translations[namespace] = fallback.default;
-            loadedNamespaces.add(namespace);
-        } else {
-            console.warn(`i18n: Failed to load namespace '${namespace}' for locale '${currentLocale}'`);
-        }
+    let messages = await tryResolve(currentLocale, namespace);
+    if (!messages && currentLocale !== fallbackLocale) {
+        messages = await tryResolve(fallbackLocale, namespace);
     }
+
+    if (!messages) {
+        console.warn(
+            `i18n: namespace '${namespace}' is not registered for locale '${currentLocale}'. ` +
+            `Register it during startup with registerCatalogue() or registerNamespace().`,
+        );
+        return;
+    }
+
+    translations[namespace] = messages;
+    loadedNamespaces.add(namespace);
 }
 
 /**
@@ -125,7 +158,8 @@ export async function loadNamespaces(namespaces: Namespace[]): Promise<void> {
  *
  * @param fullKey - Translation key in format 'namespace:key' or just 'key' (uses 'r-common')
  * @param values - Values to interpolate into the message
- * @returns The translated string, or the key if not found
+ * @param options - Set `fallback` for text that must never be missing
+ * @returns The translated string, the fallback, or the key if neither is available
  *
  * @example
  * // Simple translation
@@ -139,20 +173,36 @@ export async function loadNamespaces(namespaces: Namespace[]): Promise<void> {
  *
  * // With pluralization (ICU format)
  * t('items', { count: 5 }); // "5 items" or "5 föremål"
+ *
+ * // Wording that must never render as a raw key
+ * t('shell:aiDisclosure', undefined, {
+ *     fallback: 'You are interacting with an AI system.',
+ * });
  */
-export function t(fullKey: string, values?: Record<string, any>): string {
+export function t(
+    fullKey: string,
+    values?: Record<string, any>,
+    options?: TranslateOptions,
+): string {
     const [namespace, key] = fullKey.includes(':')
         ? fullKey.split(':')
         : ['r-common', fullKey];
     const message = translations[namespace]?.[key];
+
     if (!message) {
         if (missingHandler) missingHandler(key, namespace, currentLocale);
-        return fullKey;
+        if (options?.fallback === undefined) return fullKey;
+        return format(options.fallback, values, options.fallback);
     }
+
+    return format(message, values, options?.fallback ?? fullKey);
+}
+
+function format(message: string, values: Record<string, any> | undefined, onError: string): string {
     try {
         return formatICU(message, values, currentLocale) as string;
     } catch {
-        return fullKey;
+        return onError;
     }
 }
 

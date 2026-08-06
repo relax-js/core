@@ -178,6 +178,9 @@ The SPA fallback is missing. Configure the host to serve `index.html` for unknow
 Check the browser console. Common causes:
 - A service was imported *after* a component that injects it
 - `import.meta.env.VITE_*` is missing (undefined at runtime)
-- A translation namespace failed to load because the JSON file was not copied to `dist/`
+- A translation namespace was never registered, so its keys render as raw keys
 
-Translation files inside `src/i18n/locales/` are loaded via `fetch()` at runtime, so they need to be reachable from the browser. Either move them to `public/i18n/locales/` or import each JSON statically if your i18n loader is configured for it.
+Translation files are bundled, not fetched from a folder, so nothing needs to be copied to
+`dist/` or `public/`. What they do need is a `registerCatalogue()` or `registerNamespace()`
+call at startup. Miss that call and `loadNamespace()` logs a warning and leaves the text
+untranslated. See [Translations](../Translations.md).

@@ -2,21 +2,23 @@
 
 Relaxjs provides namespace-based translations with ICU message format, lazy loading, and locale change events.
 
-## 1. Create Translation Files
+## Create Translation Files
 
-Each namespace is a JSON file in `src/i18n/locales/{locale}/`:
+Each namespace is a JSON file in your own project, one folder per locale:
 
 ```
 src/i18n/locales/
 ├── en/
 │   ├── r-common.json
-│   ├── r-pipes.json
-│   └── r-validation.json
+│   └── errors.json
 └── sv/
     ├── r-common.json
-    ├── r-pipes.json
-    └── r-validation.json
+    └── errors.json
 ```
+
+`r-common`, `r-pipes`, and `r-validation` already ship with Relaxjs, so you only need
+files for the namespaces your application adds. Create a file with the same name to
+replace a built-in one.
 
 **`src/i18n/locales/en/r-common.json`**:
 
@@ -50,7 +52,42 @@ src/i18n/locales/
 }
 ```
 
-## 2. Set the Locale
+## Register Your Translation Files
+
+Relaxjs cannot find files that live in your project, because a bundler resolves import
+paths relative to the file they are written in. Hand your files to the library at
+startup instead, before you set the locale.
+
+With Vite, one call registers the whole folder:
+
+```typescript
+import { registerCatalogue } from '@relax.js/core/i18n';
+
+registerCatalogue(import.meta.glob('./locales/*/*.json', { eager: true }));
+```
+
+The locale and the namespace are read from the last two parts of each path, so
+`./locales/en/errors.json` becomes locale `en` and namespace `errors`.
+
+Drop `{ eager: true }` to download each file the first time it is used instead of
+including all of them in the first download:
+
+```typescript
+registerCatalogue(import.meta.glob('./locales/*/*.json'));
+```
+
+Without Vite, register the files yourself. `registerNamespace` accepts either the
+messages or a function that loads them:
+
+```typescript
+import { registerNamespace } from '@relax.js/core/i18n';
+import errorsEn from './locales/en/errors.json';
+
+registerNamespace('en', 'errors', errorsEn);
+registerNamespace('sv', 'errors', () => import('./locales/sv/errors.json'));
+```
+
+## Set the Locale
 
 Set the locale at application startup. This loads the `r-common` namespace automatically:
 
@@ -62,7 +99,7 @@ await setLocale('sv');
 
 Locale codes are normalized: `en-US` becomes `en`, `sv-SE` becomes `sv`.
 
-## 3. Load Additional Namespaces
+## Load Additional Namespaces
 
 Load extra namespaces before using their keys:
 
@@ -76,7 +113,7 @@ await loadNamespace('errors');
 await loadNamespaces(['r-pipes', 'r-validation']);
 ```
 
-## 4. Translate
+## Translate
 
 Use `t()` to translate a key. Omit the namespace to use `r-common`:
 
@@ -137,7 +174,7 @@ ICU format supports locale-aware number and date formatting:
 }
 ```
 
-## 5. Handle Missing Translations
+## Handle Missing Translations
 
 If a key is not found, `t()` returns the key itself:
 
@@ -145,13 +182,32 @@ If a key is not found, `t()` returns the key itself:
 t('unknownKey');  // "unknownKey"
 ```
 
-If a namespace file does not exist for the current locale, the library falls back to `en/`. You can register a handler to catch missing keys during development:
+If a namespace is not translated for the current locale, the library falls back to `en`.
+A namespace nobody registered is reported as a warning and leaves its keys untranslated,
+so a forgotten file cannot stop your application from starting.
+
+You can register a handler to catch missing keys during development:
 
 ```typescript
 import { onMissingTranslation } from '@relax.js/core/i18n';
 
 onMissingTranslation((key, namespace, locale) => {
     console.warn(`Missing: ${namespace}:${key} [${locale}]`);
+});
+```
+
+### Text That Must Never Be Missing
+
+Returning the key is a safe default for a button label, but not for wording you are
+required to show. A visitor who does not read your key names sees `shell:aiDisclosure`
+as if it were part of the design.
+
+Pass a `fallback` for those strings. It is used only when the key is missing, and it
+goes through the same formatter, so it can contain placeholders:
+
+```typescript
+t('shell:aiDisclosure', undefined, {
+    fallback: 'You are interacting with an AI system.',
 });
 ```
 

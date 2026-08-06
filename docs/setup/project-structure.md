@@ -116,13 +116,20 @@ Services are plain classes. They don't extend `HTMLElement`.
 Translation files, one JSON per locale per namespace:
 
 ```
-src/i18n/locales/en/r-common.json
-src/i18n/locales/en/r-validation.json
-src/i18n/locales/sv/r-common.json
-src/i18n/locales/sv/r-validation.json
+src/i18n/locales/en/shop.json
+src/i18n/locales/en/errors.json
+src/i18n/locales/sv/shop.json
+src/i18n/locales/sv/errors.json
 ```
 
-The structure is fixed: `{locale}/{namespace}.json`. See [i18n](../i18n/i18n.md) for the file format.
+The last two parts of the path are the locale and the namespace. Register the folder at
+startup so the library can see it:
+
+```typescript
+registerCatalogue(import.meta.glob('./locales/*/*.json', { eager: true }));
+```
+
+See [i18n](../i18n/i18n.md) for the file format and registration options.
 
 ---
 

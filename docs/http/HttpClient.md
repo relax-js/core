@@ -454,6 +454,7 @@ import {
     WebSocketOptions,
     WebSocketCodec,
     WebSocketAbstraction,
-    WebSocketFactory
+    WebSocketFactory,
+    SimpleDataEvent
 } from '@relax.js/core/http';
 ```

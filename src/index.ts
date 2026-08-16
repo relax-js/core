@@ -10,7 +10,19 @@ export * from "./DependencyInjection";
 export * from "./getParentComponent";
 export * from "./templates/NodeTemplate";
 export { generateSequentialId } from './SequentialId';
-export * from "./http/http";
+export {
+    HttpOptions,
+    HttpResponse,
+    HttpError,
+    RequestOptions,
+    configure,
+    setFetch,
+    request,
+    get,
+    post,
+    put,
+    del
+} from './http/http';
 export * from "./http/ServerSentEvents";
 export * from './pipes';
 export * from './tools';

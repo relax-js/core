@@ -8,7 +8,7 @@ This module provides HTTP, WebSocket, and Server-Sent Events clients for network
 |---------|-------------|----------|
 | [HTTP Client](HttpClient.md#http-client) | Type-safe HTTP functions | REST API calls with JWT handling |
 | [WebSocketClient](HttpClient.md#websocket-client) | WebSocket client with auto-reconnect | Real-time bidirectional messaging |
-| [SSEClient](ServerSentEvents.md) | Server-Sent Events as DOM events | Server push notifications |
+| [SSEClient](ServerSentEvents.md) | Server-Sent Events as DOM events | Server push notifications, and streaming a result back from a request |
 
 ## Quick Start
 
@@ -65,12 +65,29 @@ const sse = new SSEClient('/api/events', {
 sse.connect();
 
 // Events dispatch to document by default
-document.addEventListener('notification', (e: SSEMessageEvent) => {
+document.addEventListener('notification', (e: SSEDataEvent) => {
     showNotification(e.data);
 });
 
 // Disconnect when done
 sse.disconnect();
+```
+
+Send data and stream the answer back:
+
+```typescript
+const sse = new SSEClient('/api/verdict', {
+    method: 'POST',
+    body: JSON.stringify({ matchId: 42 }),
+    eventTypes: ['token', 'verdict'],
+    terminalEvents: ['verdict'],
+    onClose: (client, result) => {
+        if (result.reason === 'truncated') {
+            showRetryButton();
+        }
+    }
+});
+sse.connect();
 ```
 
 ## Key Features
@@ -98,12 +115,17 @@ sse.disconnect();
 
 - Dispatches SSE events as DOM events
 - Configurable target element or document
-- Auto-reconnect with exponential backoff
+- Browser reconnection by default
+- Optional fetch transport that sends a method, body and headers
+- Reports why a stream ended, so a cut off result can be retried
+- Base URL and JWT token on the fetch transport
 - Automatic JSON parsing
+- Replaceable fetch for testing via `setFetch()`
 
 ## Choosing the Right Tool
 
 - **REST API calls?** → Use `get`, `post`, `put`, `del`
 - **Bidirectional real-time?** → Use `WebSocketClient`
 - **Server push only?** → Use `SSEClient`
+- **Send a request and stream the answer back?** → Use `SSEClient` with `method` and `body`
 - **Both?** → Use `HttpClient` for requests, `WebSocketClient` or `SSEClient` for subscriptions

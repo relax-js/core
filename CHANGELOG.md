@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0 (2026-08-16)
+
+### Added
+
+- `SSEClient` can send data to the server. Setting `method`, `body`, `headers` or `signal` switches it to a transport built on `fetch`, so an endpoint that takes input and streams a result back can now be called. The browser's `EventSource` is GET only and cannot send a body or a header, which made those endpoints unreachable. Nothing changes for an existing client that sets none of these options.
+- `SSEOptions.onClose` reports why a stream stopped, as `completed`, `truncated`, `aborted` or `failed`. A server that finished and a server that died look identical to `EventSource`, so an application could not tell a whole result from one that was cut off. `terminalEvents` names the event the server sends last, which is what separates `completed` from `truncated`.
+- `SSEClient` surfaces a refused request. A non 2xx answer calls `onError` with an `SSEErrorEvent` carrying the status and the response, then closes with reason `failed`, instead of being retried forever by the browser. `SSEErrorEvent` extends `Event`, so handlers written against the previous `onError` signature keep working. The response `body` holds raw text, matching what `post()` returns for a failed request.
+- `SSEOptions.autoReconnect` set to `false` selects the fetch transport, which never retries. A request that sends data is not always safe to repeat, so it reports through `onClose` and leaves the retry to the application.
+- On the fetch transport `SSEClient` applies `configure({ baseUrl })` and the JWT bearer token. `EventSource` cannot send headers, so neither applies there and its URLs are unchanged.
+
 ## 1.4.0 (2026-08-09)
 
 ### Added

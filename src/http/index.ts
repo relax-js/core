@@ -16,6 +16,9 @@ export {
     SSEDataEvent,
     SSEOptions,
     SSEEventFactory,
+    SSECloseReason,
+    SSECloseResult,
+    SSEErrorEvent,
     SSEClient
 } from './ServerSentEvents';
 

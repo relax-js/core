@@ -170,6 +170,46 @@ export function configure(options: HttpOptions): void {
 }
 
 /**
+ * The fetch implementation currently in use, so that `setFetch()` also controls other modules
+ * in this package that talk to the network.
+ *
+ * @internal
+ */
+export function currentFetch(): FetchFn {
+    return fetchImpl;
+}
+
+/**
+ * Prefixes a url with the configured base url.
+ *
+ * @internal
+ */
+export function resolveUrl(url: string): string {
+    if (!config.baseUrl) {
+        return url;
+    }
+
+    if (url[0] !== '/' && config.baseUrl[config.baseUrl.length - 1] !== '/') {
+        return `${config.baseUrl}/${url}`;
+    }
+
+    return config.baseUrl + url;
+}
+
+/**
+ * The JWT token from localStorage, or null when token handling is disabled or no token is stored.
+ *
+ * @internal
+ */
+export function bearerToken(): string | null {
+    if (!config.bearerTokenName) {
+        return null;
+    }
+
+    return localStorage.getItem(config.bearerTokenName);
+}
+
+/**
  * Make an HTTP request.
  *
  * @param url - URL to make the request against.
@@ -180,19 +220,17 @@ export function configure(options: HttpOptions): void {
  * const response = await request('/users', { method: 'GET' });
  */
 export async function request(url: string, options?: RequestInit): Promise<HttpResponse> {
-    if (config.bearerTokenName) {
-        const token = localStorage.getItem(config.bearerTokenName);
-        if (token && options) {
-            const headers = options?.headers
-                ? new Headers(options.headers)
-                : new Headers();
+    const token = bearerToken();
+    if (token && options) {
+        const headers = options?.headers
+            ? new Headers(options.headers)
+            : new Headers();
 
-            if (!headers.get('Authorization')) {
-                headers.set('Authorization', 'Bearer ' + token);
-            }
-
-            options.headers = headers;
+        if (!headers.get('Authorization')) {
+            headers.set('Authorization', 'Bearer ' + token);
         }
+
+        options.headers = headers;
     }
 
     if (config.timeout && !options?.signal) {
@@ -200,15 +238,7 @@ export async function request(url: string, options?: RequestInit): Promise<HttpR
         options.signal = AbortSignal.timeout(config.timeout);
     }
 
-    if (config.baseUrl) {
-        if (url[0] !== '/' && config.baseUrl[config.baseUrl.length - 1] !== '/') {
-            url = `${config.baseUrl}/${url}`;
-        } else {
-            url = config.baseUrl + url;
-        }
-    }
-
-    const response = await fetchImpl(url, options);
+    const response = await fetchImpl(resolveUrl(url), options);
 
     if (!response.ok) {
         return {

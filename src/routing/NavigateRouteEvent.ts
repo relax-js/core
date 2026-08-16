@@ -21,6 +21,19 @@ export class NavigateRouteEvent extends Event {
      */
     isReplay: boolean = false;
 
+    /**
+     * URL fragment without the leading `#`, or `undefined` when the URL had none.
+     *
+     * Survives a layout switch, so a component can rely on it even when the
+     * route loaded a different HTML file on the way in.
+     *
+     * @example
+     * document.addEventListener('rlx.navigateRoute', (e) => {
+     *     const resetToken = e.fragment;
+     * });
+     */
+    fragment?: string;
+
     constructor(
         /**
          * Matched route.

@@ -43,10 +43,34 @@ interface NavigationState {
     params: RouteData;
     urlSegments: string[];
     entryId: number;
+    fragment?: string;
 }
+
+/**
+ * Fragment the router puts on the URL when it reloads the page to switch layout.
+ *
+ * It is namespaced so the router can tell its own marker apart from a fragment
+ * that belongs to the application. Everything not matching this is left alone.
+ */
+const LAYOUT_SENTINEL = '#rlx-layout';
 
 let nextEntryId = 1;
 let popstateAttached = false;
+
+/**
+ * Application fragment of the current URL, without the leading `#`.
+ *
+ * Returns `undefined` for the router's own layout marker, so an app never sees
+ * an internal value it did not put there.
+ */
+function readAppFragment(): string | undefined {
+    const hash = window.location.hash;
+    if (!hash || hash === LAYOUT_SENTINEL) {
+        return undefined;
+    }
+
+    return hash.slice(1);
+}
 
 function allocEntryId(): number {
     return nextEntryId++;
@@ -184,6 +208,8 @@ export function startRouting() {
         });
     }
 
+    routeResult.fragment = readAppFragment();
+
     if (navigateToLayout(routeResult)) {
         return;
     }
@@ -198,6 +224,7 @@ export function startRouting() {
         params: routeResult.params,
         urlSegments: routeResult.urlSegments,
         entryId,
+        fragment: routeResult.fragment,
     };
     history.replaceState(state, '', '/' + routeResult.urlSegments.join('/'));
 
@@ -208,6 +235,7 @@ export function startRouting() {
         target
     );
     e.entryId = entryId;
+    e.fragment = routeResult.fragment;
     document.dispatchEvent(e);
 }
 
@@ -231,6 +259,7 @@ export function startRouting() {
 export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
     console.log('navigating to ', routeNameOrUrl, options);
     const routeResult = findRoute(routeNameOrUrl, options);
+    routeResult.fragment = options?.fragment;
     if (navigateToLayout(routeResult)) {
         return;
     }
@@ -247,6 +276,7 @@ export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
         params: routeResult.params,
         urlSegments: routeResult.urlSegments,
         entryId,
+        fragment: routeResult.fragment,
     };
     if (currentUrl != ourUrl) {
         history.pushState(state, '', '/' + routeResult.urlSegments.join('/'));
@@ -258,6 +288,7 @@ export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
         target
     );
     e.entryId = entryId;
+    e.fragment = routeResult.fragment;
     document.dispatchEvent(e);
 }
 
@@ -337,6 +368,7 @@ function dispatchReplay(route: Route, entry: NavigationEntry): void {
     );
     evt.isReplay = true;
     evt.entryId = entry.entryId;
+    evt.fragment = entry.fragment;
     document.dispatchEvent(evt);
 }
 
@@ -365,6 +397,7 @@ function onPopState(e: PopStateEvent): void {
         target: state.target,
         urlSegments: state.urlSegments,
         entryId: state.entryId,
+        fragment: state.fragment,
     };
     dispatchReplay(routeResult.route, entry);
 }
@@ -409,11 +442,12 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
         'Wanted layout: ' + wantedLayout
     );
 
-    // The hash means that we attempted to redirect to the same layout once,
+    // Our own marker means that we attempted to redirect to the same layout once,
     // so if it's there and another redirect is requsted, something is wrong.
     //
     // Because the push history should remove it if everything worked out.
-    if (window.location.hash) {
+    // Only our namespaced marker counts, any other fragment belongs to the app.
+    if (window.location.hash === LAYOUT_SENTINEL) {
         throw Error(
             'A redirect failed, does the requsted layout exist? "' +
                 wantedLayout +
@@ -424,16 +458,19 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
     console.log(
         `requires layout switch from ${getCurrentLayout()} to ${wantedLayout}`
     );
+    // The fragment travels in session storage instead of on the new URL, so a
+    // token carried there is not repeated in the address bar of the layout page.
     const navigationState = {
         routeName: routeResult.route.name,
-        params: routeResult.params || {}
+        params: routeResult.params || {},
+        fragment: routeResult.fragment
     };
 
     sessionStorage.setItem('layoutNavigation', JSON.stringify(navigationState));
     const layoutUrl =
         wantedLayout.indexOf('.htm') > -1
-            ? `/${wantedLayout}#layout`
-            : `/${wantedLayout}.html#layout`;
+            ? `/${wantedLayout}${LAYOUT_SENTINEL}`
+            : `/${wantedLayout}.html${LAYOUT_SENTINEL}`;
     console.log('redirecting to ', layoutUrl);
     window.location.href = layoutUrl;
     return true;
@@ -463,7 +500,8 @@ function tryLoadRouteFromLayoutNavigation(): boolean {
         sessionStorage.removeItem('layoutNavigation');
         console.log('session store navigation ', navigationState);
         navigate(navigationState.routeName, {
-            params: navigationState.params
+            params: navigationState.params,
+            fragment: navigationState.fragment
         });
 
         return true;

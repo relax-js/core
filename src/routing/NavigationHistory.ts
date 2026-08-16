@@ -15,6 +15,7 @@ export interface NavigationEntry {
     target?: string;
     urlSegments: string[];
     entryId: number;
+    fragment?: string;
 }
 
 /**

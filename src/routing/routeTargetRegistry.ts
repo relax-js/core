@@ -95,6 +95,7 @@ function entryFromEvent(evt: NavigateRouteEvent): NavigationEntry | undefined {
         target: evt.routeTarget,
         urlSegments: evt.urlSegments,
         entryId: evt.entryId,
+        fragment: evt.fragment,
     };
 }
 

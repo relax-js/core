@@ -232,6 +232,7 @@ document.addEventListener('rlx.navigateRoute', (e: NavigateRouteEvent) => {
     console.log('Route:', e.route.name);
     console.log('Params:', e.routeData);
     console.log('Target:', e.routeTarget ?? 'default');
+    console.log('Fragment:', e.fragment);
 });
 ```
 
@@ -296,6 +297,38 @@ For convention-based usage without the interface, declare `routeData` directly o
 
 Both can be combined. `loadRoute()` runs first, then `routeData` is assigned.
 
+## Reading the URL fragment
+
+The fragment is the part of a URL after `#`. Browsers never send it to the server, so it is the one place you can put a value that will not show up in server, proxy or CDN access logs. Activation and password reset links sometimes use this for their token.
+
+A fragment has no name, so it is not merged into route parameters the way a query string is. Read it from the navigation event instead:
+
+```typescript
+import { NavigateRouteEvent } from '@relax.js/core/routing';
+
+document.addEventListener('rlx.navigateRoute', (e: NavigateRouteEvent) => {
+    if (e.route.name === 'reclaim') {
+        const resetToken = e.fragment;
+    }
+});
+```
+
+`fragment` is `undefined` when the URL had no fragment. It holds the value without the leading `#`, and it survives a [layout switch](./layouts.md).
+
+Two things to be aware of:
+
+- The router removes the fragment from the address bar once routing settles, because `pushState` rewrites the URL from the route's own segments. A page reload will therefore not see it again. For a single use token that is usually what you want, but you need a "link expired, request a new one" state for the reload case.
+- A fragment stays out of server logs, but it is still part of the URL in the browser's history, and most analytics and error reporting scripts read `location.href` rather than `location.pathname`. Check what your instrumentation captures before putting a secret there.
+
+Use a query string instead when the value is not sensitive. Query parameters are merged straight into route parameters:
+
+```typescript
+// /users/john?tab=orders
+class UserProfile extends HTMLElement {
+    routeData?: { id: string; tab: string };
+}
+```
+
 ## Error Handling
 
 ```typescript
@@ -349,13 +382,15 @@ type RouteData = Record<string, RouteParamType>;
 interface NavigateOptions {
     params?: Record<string, string | number>;
     target?: string;
-    routes?: Route[];  // Override registered routes
+    routes?: Route[];    // Override registered routes
+    fragment?: string;   // URL fragment, without '#'
 }
 
 interface RouteMatchResult {
     route: Route;
     params: RouteData;
     urlSegments: string[];
+    fragment?: string;
 }
 
 enum GuardResult {

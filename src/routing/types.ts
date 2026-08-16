@@ -107,6 +107,15 @@ export type RouteMatchResult = {
      * Extracted and type-converted parameters
      */
     params: RouteData;
+
+    /**
+     * URL fragment without the leading `#`, or `undefined` when the URL had none.
+     *
+     * Kept separate from `params` because a fragment is an opaque string with no
+     * name. Unlike the query string it is never sent to the server, which is why
+     * activation and password reset links sometimes carry their token here.
+     */
+    fragment?: string;
 };
 
 /**
@@ -149,4 +158,12 @@ export interface NavigateOptions {
      * When you want to override routes from the globally registered ones.
      */
     routes?: Route[];
+
+    /**
+     * URL fragment (without `#`) to hand to the component.
+     *
+     * Rarely set by hand. The router fills it in when it replays a navigation
+     * that crossed a layout switch.
+     */
+    fragment?: string;
 }

@@ -106,8 +106,8 @@ When a user on `/settings` (default layout) navigates to `login` (public layout)
 
 1. `navigate('login')` is called
 2. Router detects layout mismatch: `default` !== `public`
-3. Stores `{ routeName: 'login', params: {} }` in `sessionStorage`
-4. Redirects browser to `/public.html#layout`
+3. Stores `{ routeName: 'login', params: {}, fragment: undefined }` in `sessionStorage`
+4. Redirects browser to `/public.html#rlx-layout`
 5. `public.html` loads and calls `startRouting()`
 6. `startRouting()` reads from `sessionStorage`, calls `navigate('login')`
 7. URL updates to `/login`, `login-page` component renders
@@ -144,7 +144,9 @@ If a layout redirect fails (e.g., the HTML file doesn't exist), the router throw
 A redirect failed, does the requested layout exist? "admin"?
 ```
 
-The `#layout` hash in the redirect URL is used to detect this: if the hash is still present after redirect, something went wrong.
+The `#rlx-layout` hash in the redirect URL is used to detect this: if that exact hash is still present after the redirect, something went wrong.
+
+Only the `#rlx-layout` value counts. Any other fragment belongs to your application and is left alone, so a URL like `/reclaim#some-token` never triggers this error. Your own fragment is not copied onto the layout URL either. It travels in `sessionStorage` and is handed to the component instead, which keeps it out of the address bar of the layout page. See [Reading the URL fragment](./Routing.md#reading-the-url-fragment).
 
 ## Security Considerations
 

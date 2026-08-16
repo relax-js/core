@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.0 (2026-08-09)
+
+### Added
+
+- `NavigateRouteEvent.fragment` gives a component the URL fragment (the part after `#`), without the leading `#`, or `undefined` when the URL had none. A fragment is never sent to the server, so it is the one place a value stays out of server, proxy and CDN access logs. Activation and password reset links use this for their token. Unlike a query string it has no name, so it is not merged into route parameters.
+- The fragment survives a layout switch. It travels in `sessionStorage` together with the route parameters rather than on the redirect URL, so a token carried there is not repeated in the address bar of the layout page.
+- `NavigateOptions.fragment` passes a fragment to `navigate()` by hand. Rarely needed, since the router fills it in when replaying a navigation that crossed a layout switch.
+
+### Fixed
+
+- Navigating to a route with its own layout threw `A redirect failed, does the requsted layout exist?` whenever the URL had any fragment at all. The check that detects a failed layout redirect tested for the presence of a hash rather than for the marker the router itself writes, so an application fragment such as a reset token in `/reclaim#token` looked like a failed redirect. Loop detection now matches the marker exactly and every other fragment is left alone.
+
+### Changed
+
+- The marker the router puts on the URL while switching layout is now `#rlx-layout` instead of `#layout`, so it cannot collide with an application's own anchor or fragment. This is internal to the redirect and is cleared once routing settles.
+
 ## 1.3.0 (2026-08-06)
 
 ### Added

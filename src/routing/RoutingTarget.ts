@@ -4,6 +4,15 @@ import type { RouteData, LoadRoute } from './types';
 import { RelaxError, reportError } from '../errors';
 
 /**
+ * How long a route waits for its component to appear in `customElements`
+ * before saying so.
+ *
+ * A component behind a dynamic import may legitimately take a moment, so the
+ * route keeps waiting after the warning rather than failing the navigation.
+ */
+const COMPONENT_REGISTRATION_WARNING_MS = 5000;
+
+/**
  * WebComponent that listens on the `NavigateRouteEvent` event to be able to switch route.
  *
  * Use the "name" attribute to make this non-default target.
@@ -30,7 +39,6 @@ export class RouteTarget extends HTMLElement {
         }
 
         registerRouteTarget(this.name, (evt) => this.onNavigate(evt));
-        console.log('registered');
     }
 
     disconnectedCallback() {
@@ -38,7 +46,6 @@ export class RouteTarget extends HTMLElement {
     }
 
     private onNavigate(evt: NavigateRouteEvent) {
-        console.log('got nav', evt);
         this.loadComponent(evt).catch((error) => {
             if (!(error instanceof RelaxError)) {
                 error = reportError('Route navigation failed', {
@@ -68,7 +75,7 @@ export class RouteTarget extends HTMLElement {
             return;
         }
 
-        await customElements.whenDefined(tagName);
+        await this.whenComponentRegistered(tagName, evt);
         const element = document.createElement(tagName);
 
         await this.applyRouteData(element, evt.routeData);
@@ -78,9 +85,59 @@ export class RouteTarget extends HTMLElement {
             if (!this.dialog.open) {
                 this.dialog.showModal();
             }
-        } else if (document.startViewTransition) {
-            document.startViewTransition(() => this.replaceChildren(element));
-        } else {
+            return;
+        }
+
+        await this.showPage(element);
+    }
+
+    /**
+     * Waits for the route's component to be registered.
+     *
+     * `customElements.whenDefined` never rejects, so a tag name that is never
+     * registered leaves the route waiting with nothing on screen and nothing in
+     * the console. The warning breaks that silence without giving up on a
+     * component that is merely slow to arrive.
+     */
+    private async whenComponentRegistered(tagName: string, evt: NavigateRouteEvent) {
+        if (customElements.get(tagName)) {
+            return;
+        }
+
+        const stillWaiting = setTimeout(() => {
+            console.warn(
+                `[relaxjs:routing] Route '${evt.route.name}' is waiting for <${tagName}> to be registered with customElements, and cannot render until it is. Check the tag name for typos, and that the module defining the component is imported.`
+            );
+        }, COMPONENT_REGISTRATION_WARNING_MS);
+
+        try {
+            await customElements.whenDefined(tagName);
+        } finally {
+            clearTimeout(stillWaiting);
+        }
+    }
+
+    /**
+     * Puts the page on screen, animated with a view transition when the browser supports one.
+     *
+     * The browser drops the animation when the tab is hidden or when the visitor navigates again
+     * before it has finished. That is normal browsing, not a failed navigation, so the dropped
+     * animation is not reported. The visitor must still get the new page, so the swap is done
+     * directly when the browser gave up before running it.
+     */
+    private async showPage(element: Element) {
+        if (!document.startViewTransition) {
+            this.replaceChildren(element);
+            return;
+        }
+
+        const transition = document.startViewTransition(() => this.replaceChildren(element));
+        transition.ready.catch(() => undefined);
+        transition.finished.catch(() => undefined);
+
+        try {
+            await transition.updateCallbackDone;
+        } catch {
             this.replaceChildren(element);
         }
     }
@@ -92,8 +149,13 @@ export class RouteTarget extends HTMLElement {
 
     private async applyRouteData(element: Element, data?: RouteData) {
         if ('loadRoute' in element) {
+            if (!data) {
+                console.warn(
+                    `[relaxjs:routing] <${element.tagName.toLowerCase()}> has loadRoute(), but the route carries no parameters to hand it. Add parameters to the route path, or drop loadRoute() from the component.`
+                );
+            }
             const routeData = data
-                ?? { error: 'loadRoute function without mapped route data in the routes' };
+                ?? { r_error: 'loadRoute function without mapped route data in the routes' };
             await (element as unknown as LoadRoute).loadRoute(routeData);
         }
 

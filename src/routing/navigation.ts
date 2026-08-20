@@ -131,7 +131,6 @@ export function printRoutes() {
  * defineRoutes(routes);
  */
 export function defineRoutes(appRoutes: Route[]) {
-    console.log('defining routes1', appRoutes);
     initRouteTargetListener();
     if (!customElements.get('r-route-target')) {
         customElements.define('r-route-target', RouteTarget);
@@ -139,9 +138,12 @@ export function defineRoutes(appRoutes: Route[]) {
     if (!customElements.get('r-link')) {
         customElements.define('r-link', RouteLink);
     }
-    console.log('defining routes', appRoutes);
     internalRoutes.length = 0;
     internalRoutes.push(...appRoutes);
+
+    if (window.relaxDebug?.routing) {
+        console.log('[relaxjs:routing] routes defined', appRoutes);
+    }
 
     var errs: string[] = [];
     appRoutes.forEach((route) => {
@@ -158,8 +160,20 @@ export function defineRoutes(appRoutes: Route[]) {
                 `Component '${route.component.name}' is not defined in customElements. Used in route '${JSON.stringify(route)}'.`
             );
         }
+        const bracedSegments = route.path
+            .replace(/^\/|\/$/g, '')
+            .split('/')
+            .filter((segment) => segment.startsWith('{'));
+        if (bracedSegments.length > 0) {
+            errs.push(
+                `Route '${route.name}' uses ${bracedSegments.join(', ')} in path '${route.path}'. Relaxjs writes parameters as ':name' for text and ';name' for a number.`
+            );
+        }
         if (route.layout === '') {
-            console.log('should not use empty string layout.', route);
+            console.warn(
+                `[relaxjs:routing] Route '${route.name}' has an empty layout name, which is being treated as "no layout". Leave layout undefined instead.`,
+                route
+            );
             route.layout = undefined;
         }
     });
@@ -185,10 +199,14 @@ export function startRouting() {
         const path = window.location.pathname;
         const match = path.match(/\/([^\/]+)\.html$/);
         if (match && match[1] !== '') {
-            console.log('setting current layut', match[1]);
+            if (window.relaxDebug?.routing) {
+                console.log('[relaxjs:routing] current layout taken from URL', match[1], path);
+            }
             currentLayout = match[1];
         } else {
-            console.log('Setting default layout name');
+            if (window.relaxDebug?.routing) {
+                console.log('[relaxjs:routing] current layout defaulted to "default"', path);
+            }
             currentLayout = 'default';
         }
     }
@@ -257,7 +275,9 @@ export function startRouting() {
  * navigate('detail', { params: { id: '42' }, target: 'modal' });
  */
 export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
-    console.log('navigating to ', routeNameOrUrl, options);
+    if (window.relaxDebug?.routing) {
+        console.log('[relaxjs:routing] navigate', routeNameOrUrl, options);
+    }
     const routeResult = findRoute(routeNameOrUrl, options);
     routeResult.fragment = options?.fragment;
     if (navigateToLayout(routeResult)) {
@@ -437,11 +457,6 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
         return false;
     }
 
-    console.log(
-        'Current layout: ' + getCurrentLayout(),
-        'Wanted layout: ' + wantedLayout
-    );
-
     // Our own marker means that we attempted to redirect to the same layout once,
     // so if it's there and another redirect is requsted, something is wrong.
     //
@@ -449,15 +464,16 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
     // Only our namespaced marker counts, any other fragment belongs to the app.
     if (window.location.hash === LAYOUT_SENTINEL) {
         throw Error(
-            'A redirect failed, does the requsted layout exist? "' +
-                wantedLayout +
-                '"?'
+            `A redirect failed. Wanted layout '${wantedLayout}' for route '${routeResult.route.name}', but after reloading ${window.location.pathname} the current layout is still '${getCurrentLayout()}'. Does the layout page exist?`
         );
     }
 
-    console.log(
-        `requires layout switch from ${getCurrentLayout()} to ${wantedLayout}`
-    );
+    if (window.relaxDebug?.routing) {
+        console.log(
+            `[relaxjs:routing] layout switch required, from '${getCurrentLayout()}' to '${wantedLayout}'`,
+            routeResult.route.name
+        );
+    }
     // The fragment travels in session storage instead of on the new URL, so a
     // token carried there is not repeated in the address bar of the layout page.
     const navigationState = {
@@ -471,7 +487,9 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
         wantedLayout.indexOf('.htm') > -1
             ? `/${wantedLayout}${LAYOUT_SENTINEL}`
             : `/${wantedLayout}.html${LAYOUT_SENTINEL}`;
-    console.log('redirecting to ', layoutUrl);
+    if (window.relaxDebug?.routing) {
+        console.log('[relaxjs:routing] reloading page to switch layout', layoutUrl, navigationState);
+    }
     window.location.href = layoutUrl;
     return true;
 }
@@ -498,7 +516,9 @@ function tryLoadRouteFromLayoutNavigation(): boolean {
 
         const navigationState = JSON.parse(navigationStateJson);
         sessionStorage.removeItem('layoutNavigation');
-        console.log('session store navigation ', navigationState);
+        if (window.relaxDebug?.routing) {
+            console.log('[relaxjs:routing] resuming navigation after layout switch', navigationState);
+        }
         navigate(navigationState.routeName, {
             params: navigationState.params,
             fragment: navigationState.fragment

@@ -4,7 +4,6 @@ import {
     navigateForward,
     canGoBack,
     canGoForward,
-    printRoutes,
 } from './navigation';
 import { RelaxError, reportError } from '../errors';
 
@@ -36,9 +35,6 @@ export class RouteLink extends HTMLElement {
 
         const name = this.getAttribute('name');
         if (!name) return;
-
-        console.log('Calling printRoutes from RouteLink in relaxjs/components');
-        printRoutes();
 
         const params: Record<string, string> = {};
         for (const attr of Array.from(this.attributes)) {

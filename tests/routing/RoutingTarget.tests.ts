@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { NavigateRouteEvent, Route, RouteData, clearPendingNavigations } from '../../src/routing';
 import type { LoadRoute, Routable } from '../../src/routing';
 import { onError, RelaxError } from '../../src/errors';
@@ -63,6 +63,31 @@ class FailingLoadRoutePage extends HTMLElement implements LoadRoute {
 }
 customElements.define('test-failing-loadroute-page', FailingLoadRoutePage);
 
+function abortError() {
+    return new DOMException('Transition was aborted because of invalid state', 'AbortError');
+}
+
+/**
+ * Mimics a browser that drops the view transition animation, either after it has swapped the
+ * DOM (`runCallback`) or before it got that far.
+ */
+function stubViewTransition(runCallback: boolean) {
+    (document as any).startViewTransition = (callback: () => void) => {
+        if (runCallback) {
+            callback();
+        }
+        const updateCallbackDone = runCallback
+            ? Promise.resolve()
+            : Promise.reject(abortError());
+        return {
+            ready: Promise.reject(abortError()),
+            finished: runCallback ? Promise.resolve() : Promise.reject(abortError()),
+            updateCallbackDone,
+            skipTransition: () => {},
+        };
+    };
+}
+
 function dispatchRoute(route: Route, routeData?: RouteData, target?: string) {
     const evt = new NavigateRouteEvent(
         route,
@@ -85,6 +110,38 @@ describe('RouteTarget', () => {
         clearPendingNavigations();
         routeTarget = document.createElement('r-route-target');
         document.body.replaceChildren(routeTarget);
+    });
+
+    describe('waiting for the component to be registered', () => {
+        it('route_whose_component_is_never_registered_says_so_instead_of_waiting_silently', async () => {
+            vi.useFakeTimers();
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            dispatchRoute({
+                name: 'ghost',
+                path: '/ghost',
+                componentTagName: 'test-never-registered-page',
+            });
+            await vi.advanceTimersByTimeAsync(5000);
+
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining('test-never-registered-page')
+            );
+
+            warnSpy.mockRestore();
+            vi.useRealTimers();
+        });
+
+        it('route_whose_component_is_already_registered_waits_without_warning', async () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            dispatchRoute({ name: 'simple', path: '/simple', componentTagName: 'test-simple-page' });
+            await flush();
+
+            expect(warnSpy).not.toHaveBeenCalled();
+
+            warnSpy.mockRestore();
+        });
     });
 
     describe('component creation', () => {
@@ -147,7 +204,7 @@ describe('RouteTarget', () => {
             expect(page.receivedData).toEqual({ id: 'abc' });
         });
 
-        it('should call loadRoute with error data when route has no params', async () => {
+        it('loadRoute_without_route_params_receives_a_namespaced_marker_rather_than_looking_like_data', async () => {
             dispatchRoute(
                 { name: 'noparams', path: '/noparams', componentTagName: 'test-noparams-loadroute-page' },
             );
@@ -155,7 +212,7 @@ describe('RouteTarget', () => {
 
             const page = routeTarget.children[0] as NoParamsLoadRoutePage;
             expect(page.receivedData).toEqual({
-                error: 'loadRoute function without mapped route data in the routes',
+                r_error: 'loadRoute function without mapped route data in the routes',
             });
         });
     });
@@ -269,6 +326,46 @@ describe('RouteTarget', () => {
 
             expect(lateTarget.children.length).toBe(1);
             expect(lateTarget.children[0].tagName.toLowerCase()).toBe('test-simple-page');
+        });
+    });
+
+    describe('view transitions', () => {
+        afterEach(() => {
+            delete (document as any).startViewTransition;
+        });
+
+        it('should show the routed component when the browser drops the animation after the swap', async () => {
+            stubViewTransition(true);
+
+            dispatchRoute({ name: 'simple', path: '/simple', componentTagName: 'test-simple-page' });
+            await flush();
+
+            expect(routeTarget.children.length).toBe(1);
+            expect(routeTarget.children[0].tagName.toLowerCase()).toBe('test-simple-page');
+        });
+
+        it('should show the routed component when the browser aborts before running the swap', async () => {
+            stubViewTransition(false);
+
+            dispatchRoute({ name: 'simple', path: '/simple', componentTagName: 'test-simple-page' });
+            await flush();
+
+            expect(routeTarget.children.length).toBe(1);
+            expect(routeTarget.children[0].tagName.toLowerCase()).toBe('test-simple-page');
+        });
+
+        it('should not report a navigation failure when the browser aborts the animation', async () => {
+            const errors: RelaxError[] = [];
+            onError((error, ctx) => {
+                errors.push(error);
+                ctx.suppress();
+            });
+            stubViewTransition(false);
+
+            dispatchRoute({ name: 'simple', path: '/simple', componentTagName: 'test-simple-page' });
+            await flush();
+
+            expect(errors).toEqual([]);
         });
     });
 

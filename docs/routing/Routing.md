@@ -281,6 +281,8 @@ class OrderDetail extends HTMLElement implements LoadRoute<{ orderId: number }> 
 }
 ```
 
+If the route carries no parameters at all, there is nothing to hand `loadRoute()`. The router warns about it and passes `{ r_error: '...' }` instead, so a component that reads the value can tell it came from the router rather than from your route. The `r_` prefix marks it as ours. Either give the route parameters, or drop `loadRoute()` and use `connectedCallback()`.
+
 ### routeData (typed property)
 
 Implement `Routable` to receive parameters as a typed property. The property is optional since it's set by the router after construction.

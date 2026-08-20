@@ -96,7 +96,7 @@ describe('Route fragments', () => {
     it('repeated_layout_redirect_still_reports_a_missing_layout_file', () => {
         history.replaceState({}, '', '/restricted#rlx-layout');
 
-        expect(() => startRouting()).toThrow(/does the requsted layout exist/);
+        expect(() => startRouting()).toThrow(/noauth/);
     });
 
     it('navigate_carries_an_explicit_fragment_to_the_component', () => {

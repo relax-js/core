@@ -1,4 +1,5 @@
 export * from './errors';
+export type { RelaxDebugFlags } from './debug';
 export * from './collections/Index';
 export * from './forms/FormValidator';
 export * from './forms/FormReader';

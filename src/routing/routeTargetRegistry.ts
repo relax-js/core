@@ -43,13 +43,27 @@ export function registerRouteTarget(
         return;
     }
 
-    const history = detachedHistories.get(name) ?? new NavigationHistory();
+    const restoredHistory = detachedHistories.get(name);
+    const history = restoredHistory ?? new NavigationHistory();
     detachedHistories.delete(name);
     targets.set(name, { handler, history });
+
+    if (window.relaxDebug?.routing) {
+        console.log('[relaxjs:routing] target registered', name ?? 'default', {
+            historyRestored: restoredHistory !== undefined,
+        });
+    }
 
     const pending = pendingEvents.get(name);
     if (pending) {
         pendingEvents.delete(name);
+        if (window.relaxDebug?.routing) {
+            console.log(
+                '[relaxjs:routing] replaying parked navigation into target',
+                name ?? 'default',
+                pending.route.name
+            );
+        }
         dispatchToTarget(pending);
     }
 }
@@ -102,6 +116,17 @@ function entryFromEvent(evt: NavigateRouteEvent): NavigationEntry | undefined {
 function dispatchToTarget(evt: NavigateRouteEvent) {
     const reg = targets.get(evt.routeTarget);
     if (!reg) {
+        if (window.relaxDebug?.routing) {
+            console.log(
+                '[relaxjs:routing] no target registered, navigation parked',
+                evt.routeTarget ?? 'default',
+                evt.route.name,
+                {
+                    replacedParkedNavigation: pendingEvents.has(evt.routeTarget),
+                    registeredTargets: Array.from(targets.keys(), (name) => name ?? 'default'),
+                }
+            );
+        }
         pendingEvents.set(evt.routeTarget, evt);
         return;
     }

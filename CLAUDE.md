@@ -1,6 +1,12 @@
-**Overall**
+**Audience**
 
-Target audience:  Beginner developers.
+Experienced developers who concluded that large frameworks abstract away too much to stay efficient in big systems, because the cost lands when tracking down errors. Assume the reader knows the web platform, not framework vocabulary.
+
+- Keep behavior visible at the call site. Indirection that hides where something happened costs more than the boilerplate it removes.
+- Abstraction that removes repetition is welcome. Abstraction that removes visibility is not.
+- Coding agents are a primary consumer and need the same property: they navigate by reading and grepping, and cannot run the app. The whole library fitting in an agent's context alongside the actual problem is a real advantage, and every added API spends it.
+
+**Overall**
 
 - Do not analyze code base to find patterns etc, ask if required.
 * Prefer the simplest, most minimal approach first. Do not over-design solutions or add unnecessary abstractions.
@@ -14,6 +20,7 @@ Target audience:  Beginner developers.
 
 **Documentation**
 - Document using markdown in docs/
+- Write for a reader who knows the web platform but has never seen this library. State what something is for and when to reach for it, then show it working.
 - JSDoc to explain context and purpose, but do NOT repeat what the code says.
 - Never use em-dashes (—) in prose. Rephrase the sentence instead.
 

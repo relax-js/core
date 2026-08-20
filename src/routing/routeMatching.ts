@@ -227,6 +227,18 @@ export function findRouteByUrl(
             return m;
         }
     }
+
+    if (window.relaxDebug?.routing) {
+        console.log('[relaxjs:routing] no route matched url', path, {
+            urlSegments,
+            tried: routes.map((route) => ({
+                name: route.name,
+                path: route.path,
+                segmentCount: route.path.replace(/^\/|\/$/g, '').split('/').length,
+            })),
+        });
+    }
+
     return null;
 }
 
@@ -255,7 +267,6 @@ function generateRouteImp(route: Route): RouteImp {
             impSegments.push(new StringRouteSegment(segment.substring(1)));
         } else if (segment.substring(0, 1) === ';') {
             impSegments.push(new NumberRouteSegment(segment.substring(1)));
-        } else if (segment.substring(0, 1) === '{') {
         } else {
             impSegments.push(new PathRouteSegment(segment));
         }

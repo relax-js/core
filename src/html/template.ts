@@ -172,7 +172,8 @@ function resolvePath(ctx: ContextValue, path: string): ContextValue {
   
   function handleError(config: EngineConfig, message: string, context: string, shouldThrow = false): void {
     const formattedMessage = `[template error] ${message} (at ${context})`;
-    
+
+    if (window.relaxDebug?.templates) console.warn(formattedMessage);
     if (config.onError) config.onError(formattedMessage);
     if (config.strict || shouldThrow) throw new Error(formattedMessage);
   }

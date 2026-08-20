@@ -134,17 +134,4 @@ describe('RouteLink', () => {
 
         expect(preventDefaultSpy).toHaveBeenCalled();
     });
-
-    it('should call printRoutes on click', () => {
-        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-        element.setAttribute('name', 'test');
-        element.click();
-
-        expect(consoleSpy).toHaveBeenCalledWith(
-            expect.stringContaining('printRoutes'),
-        );
-
-        consoleSpy.mockRestore();
-    });
 });

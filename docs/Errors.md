@@ -2,6 +2,8 @@
 
 Global error handling for Relaxjs. Intercept errors before they throw, inspect structured context, and decide whether to suppress them.
 
+Looking for the case where nothing failed but nothing happened either? See [Debugging](Debugging.md) for the trace flags.
+
 ## Overview
 
 By default, Relaxjs throws a `RelaxError` when something goes wrong internally. Register a handler with `onError()` to intercept these errors. The handler receives an `ErrorContext` that lets you control whether the error is thrown.

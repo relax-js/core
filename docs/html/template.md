@@ -73,6 +73,13 @@ Set attribute values dynamically:
 <a href="/users/{{user.id}}" class="{{linkClass}}">View Profile</a>
 ```
 
+An attribute may hold any number of expressions, and the literal text around
+them is kept, so class strings can be built in the template:
+
+```html
+<li class="finding depth-{{depth}} {{severity}}">
+```
+
 Most attributes are written as plain strings. Two cases are handled specially so
 bindings behave the way you expect on form controls:
 
@@ -87,10 +94,11 @@ keeps the input in sync every render:
 <input type="checkbox" checked="{{isActive}}">
 ```
 
-**Boolean values toggle the attribute on and off.** When a binding resolves to a
-real boolean, the attribute is added when `true` and removed when `false`. This
-makes `disabled` work as expected. A plain string write would produce
-`disabled="false"`, which the browser still treats as disabled:
+**Boolean values toggle the attribute on and off.** When the whole attribute is
+one expression and it resolves to a real boolean, the attribute is added when
+`true` and removed when `false`. This makes `disabled` work as expected. A plain
+string write would produce `disabled="false"`, which the browser still treats as
+disabled:
 
 ```html
 <button disabled="{{isBusy}}">Save</button>
@@ -273,6 +281,13 @@ Sibling `if` elements toggle independently and preserve their position among sib
 <span>End</span>
 ```
 
+An element may carry both `if` and `unless`, and renders only when the `if`
+holds and the `unless` does not:
+
+```html
+<button if="hasChanges" unless="saving">Save</button>
+```
+
 ### Loop Rendering
 
 Repeat elements for arrays with `loop`:
@@ -295,6 +310,13 @@ Combine with conditionals:
         <td unless="user.isAdmin">Regular User</td>
     </tr>
 </table>
+```
+
+Put `if` or `unless` on the looping element itself to skip items. The condition
+is evaluated per item, and an item that fails it produces no element at all:
+
+```html
+<li loop="product in products" if="product.inStock">{{product.name}}</li>
 ```
 
 Loop with array indexing:

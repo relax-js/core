@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1 (2026-08-21)
+
+### Fixed
+
+- An attribute mixing literal text with `{{expr}}`, such as `class="finding {{severity}}"` or `src="/avatars/{{user.id}}.png"`, kept only the first expression and dropped the rest of the value.
+- An attribute holding several expressions rendered only the first one.
+- `loop` and `if` on the same element threw instead of skipping the items that fail the condition. The same applies to `loop` with `unless`, and to `if` with `unless`.
+
 ## 1.6.0 (2026-08-20)
 
 ### Added

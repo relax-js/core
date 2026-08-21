@@ -270,39 +270,56 @@ function evaluateExpression(
     return value;
 }
   
-// Improved text node patcher with expression memoization
-const expressionCache = new Map<string, { parsed: ParsedExpression; literal: string }[]>();
+interface InterpolationPart {
+    /** Set for a `{{expr}}` segment, null for surrounding literal text. */
+    parsed: ParsedExpression | null;
+    literal: string;
+}
+
+const expressionCache = new Map<string, InterpolationPart[]>();
+
+/**
+ * Splits interpolated text into the literal and `{{expr}}` segments it is made
+ * of, so both can be re-joined on every render. Text and attributes share the
+ * parse result, which is memoized because loops recompile a clone per item.
+ */
+function splitInterpolation(raw: string): InterpolationPart[] {
+    let parts = expressionCache.get(raw);
+    if (!parts) {
+        parts = raw
+            .split(/(\{\{.*?\}\})/)
+            .filter(part => part !== '')
+            .map(part => part.startsWith('{{') && part.endsWith('}}')
+                ? { parsed: parseExpression(part.slice(2, -2).trim()), literal: '' }
+                : { parsed: null, literal: part });
+        expressionCache.set(raw, parts);
+    }
+    return parts;
+}
+
+function composeParts(
+    parts: InterpolationPart[],
+    ctx: Context,
+    fns: FunctionsContext | undefined,
+    config: EngineConfig,
+    debugInfo: string
+): string {
+    return parts
+        .map(({ parsed, literal }) => parsed
+            ? String(evaluateExpression(parsed, ctx, fns, config, debugInfo))
+            : literal)
+        .join('');
+}
 
 function textNodePatcher(node: Node, _get: Getter, config: EngineConfig): Setter | void {
     if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.includes('{{')) return;
 
     const raw = node.textContent;
-
-    // Use cached parsed expressions if available
-    if (!expressionCache.has(raw)) {
-        const parts = raw.split(/(\{\{.*?\}\})/);
-        const parsed = parts.map(part => {
-            if (part.startsWith('{{')) {
-                const expr = part.slice(2, -2).trim();
-                return { parsed: parseExpression(expr), literal: '' };
-            } else {
-                return { parsed: null as unknown as ParsedExpression, literal: part };
-            }
-        });
-        expressionCache.set(raw, parsed);
-    }
-
-    const exprs = expressionCache.get(raw)!;
+    const parts = splitInterpolation(raw);
     const debugInfo = `TextNode: "${raw}"`;
 
     return (ctx: Context, fns?: FunctionsContext) => {
-        const result = exprs.map(({ parsed, literal }) => {
-            if (parsed) {
-                return String(evaluateExpression(parsed, ctx, fns, config, debugInfo));
-            }
-            return literal;
-        }).join('');
-        (node as Text).textContent = result;
+        (node as Text).textContent = composeParts(parts, ctx, fns, config, debugInfo);
     };
 }
   
@@ -317,7 +334,8 @@ const liveValueAttributes = ['value', 'checked', 'selected'];
 
 /**
  * Resolves `{{expr}}` inside element attributes and keeps them updated on
- * every render.
+ * every render. An attribute may mix literal text with any number of
+ * expressions, as in `class="finding {{severity}}"`.
  *
  * Three binding modes, chosen by the attribute and the resolved value:
  * - `value`/`checked`/`selected` are written to the matching DOM *property*,
@@ -333,8 +351,13 @@ const liveValueAttributes = ['value', 'checked', 'selected'];
  * compileTemplate('<input value="{{name}}">');
  *
  * @example
- * // Boolean binding toggles the attribute on and off
+ * // Boolean binding toggles the attribute on and off. Only a whole-value
+ * // expression can do this; "busy {{flag}}" is always a string.
  * compileTemplate('<button disabled="{{busy}}">Save</button>');
+ *
+ * @example
+ * // Literals and expressions compose into one string
+ * compileTemplate('<img src="/avatars/{{user.id}}.png">');
  */
 function attributeInterpolationPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | void {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
@@ -345,23 +368,28 @@ function attributeInterpolationPatcher(node: Node, _get: Getter, config: EngineC
     // Use Array.from to safely iterate over NamedNodeMap
     const attributes = Array.from(element.attributes);
     for (const attr of attributes) {
-        const match = attr.value.match(/\{\{(.+?)\}\}/);
-        if (match) {
-            const expr = match[1].trim();
-            const parsed = parseExpression(expr);
-            const name = attr.name;
-            const debugInfo = `Attribute: ${name} on <${element.tagName.toLowerCase()}>`;
-            setters.push((ctx: Context, fns?: FunctionsContext) => {
-                const value = evaluateExpression(parsed, ctx, fns, config, debugInfo);
-                if (liveValueAttributes.includes(name) && name in element) {
-                    (element as unknown as Record<string, unknown>)[name] = value;
-                } else if (typeof value === 'boolean') {
-                    element.toggleAttribute(name, value);
-                } else {
-                    element.setAttribute(name, String(value));
-                }
-            });
-        }
+        if (!attr.value.includes('{{')) continue;
+
+        const parts = splitInterpolation(attr.value);
+        if (!parts.some(part => part.parsed)) continue;
+
+        const name = attr.name;
+        const wholeValue = parts.length === 1 ? parts[0].parsed : null;
+        const debugInfo = `Attribute: ${name} on <${element.tagName.toLowerCase()}>`;
+
+        setters.push((ctx: Context, fns?: FunctionsContext) => {
+            const value = wholeValue
+                ? evaluateExpression(wholeValue, ctx, fns, config, debugInfo)
+                : composeParts(parts, ctx, fns, config, debugInfo);
+
+            if (liveValueAttributes.includes(name) && name in element) {
+                (element as unknown as Record<string, unknown>)[name] = value;
+            } else if (typeof value === 'boolean') {
+                element.toggleAttribute(name, value);
+            } else {
+                element.setAttribute(name, String(value));
+            }
+        });
     }
 
     if (setters.length > 0) {
@@ -432,81 +460,26 @@ function eventPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | 
     }
 }
 
-/**
- * Caches the detached element+renderer when hiding so that re-showing
- * skips the clone + compile overhead. Render-before-insert order is
- * preserved for both fresh and cached paths.
- */
-function createConditionalPatcher(
-    node: Node,
-    get: Getter,
-    config: EngineConfig,
-    attrName: string,
-    shouldRender: (value: TemplateValue) => boolean
-): Setter | void {
-    if (node.nodeType !== Node.ELEMENT_NODE || !(node as Element).hasAttribute(attrName)) return;
+const structuralAttributes = ['loop', 'if', 'unless'];
 
-    const element = node as Element;
-    const expr = element.getAttribute(attrName)!;
-    const templateNode = element.cloneNode(true) as Element;
-    const placeholder = document.createComment(`${attrName}: ${expr}`);
-    const parent = element.parentNode!;
-
-    parent.insertBefore(placeholder, element);
-    element.remove();
-
-    let currentElement: Element | null = null;
-    let currentRenderer: ((ctx: Context, fns?: FunctionsContext) => void) | null = null;
-    let cachedElement: Element | null = null;
-    let cachedRenderer: ((ctx: Context, fns?: FunctionsContext) => void) | null = null;
-
-    return (ctx: Context, fns?: FunctionsContext) => {
-        const value = get(ctx, expr, `${attrName}="${expr}"`);
-        const shouldBeVisible = shouldRender(value);
-
-        if (shouldBeVisible && !currentElement) {
-            if (cachedElement && cachedRenderer) {
-                currentElement = cachedElement;
-                currentRenderer = cachedRenderer;
-                cachedElement = null;
-                cachedRenderer = null;
-            } else {
-                const clone = templateNode.cloneNode(true) as Element;
-                clone.removeAttribute(attrName);
-                currentElement = clone;
-                currentRenderer = compileDOM(clone, config);
-            }
-            currentRenderer(ctx, fns);
-            parent.insertBefore(currentElement, placeholder.nextSibling);
-        } else if (shouldBeVisible && currentRenderer) {
-            currentRenderer(ctx, fns);
-        }
-
-        if (!shouldBeVisible && currentElement) {
-            currentElement.remove();
-            cachedElement = currentElement;
-            cachedRenderer = currentRenderer;
-            currentElement = null;
-            currentRenderer = null;
-        }
-    };
-}
-
-function ifPatcher(node: Node, get: Getter, config: EngineConfig): Setter | void {
-    return createConditionalPatcher(node, get, config, 'if', value => !!value);
-}
-
-function unlessPatcher(node: Node, get: Getter, config: EngineConfig): Setter | void {
-    return createConditionalPatcher(node, get, config, 'unless', value => !value);
-}
-  
-interface LoopSlot {
+/** One rendered copy of a structural element, kept so the next render can re-use it. */
+interface Instance {
     element: Element;
-    renderer: (ctx: Context, fns?: FunctionsContext) => void;
+    render: (ctx: Context, fns?: FunctionsContext) => void;
 }
 
 /**
- * Rendering order for loop items:
+ * Takes full ownership of any element carrying `loop`, `if` or `unless`,
+ * including an element carrying several of them at once. The element is
+ * replaced by a comment placeholder, and every render decides which copies
+ * belong after that placeholder. Content patchers and child traversal are
+ * skipped for such an element; its copies are compiled on their own.
+ *
+ * `if` and `unless` combine: the element renders when the `if` holds and the
+ * `unless` does not. On a looping element the condition is evaluated per item
+ * against that item's context, so an item that fails it produces no element.
+ *
+ * Rendering order for a new copy:
  *
  * 1. Clone from template (detached, attributes still contain mustache)
  * 2. Compile the clone, creating setters for mustache in attributes/text
@@ -517,99 +490,124 @@ interface LoopSlot {
  * upgrades custom elements immediately (connectedCallback fires) while
  * attributes still contain raw "{{expr}}" strings.
  *
- * Slot reuse: existing elements are re-rendered in place (already in DOM,
- * already compiled). Only new items go through the full clone-compile-render-
- * insert sequence. Excess items are removed.
+ * Copies already in the DOM are re-rendered in place. The most recently
+ * removed copy is kept, so hiding and re-showing an element, or a list that
+ * shrinks and grows again, skips the clone + compile.
  */
-function loopPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | void {
-    if (node.nodeType !== Node.ELEMENT_NODE || !(node as Element).hasAttribute('loop')) return;
+function structuralPatcher(node: Node, get: Getter, config: EngineConfig): Setter | void {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
 
     const element = node as Element;
-    const loopDef = element.getAttribute('loop')!;
-    const match = loopDef.match(/(\w+)\s+in\s+(.+)/);
-    if (!match) {
-        handleError(config, `Invalid loop syntax: "${loopDef}"`, `Element: <${element.tagName.toLowerCase()}>`);
-        return;
+    const loopDef = element.getAttribute('loop');
+    const ifExpr = element.getAttribute('if');
+    const unlessExpr = element.getAttribute('unless');
+    if (loopDef === null && ifExpr === null && unlessExpr === null) return;
+
+    const tag = element.tagName.toLowerCase();
+    let alias = '';
+    let source = '';
+
+    if (loopDef !== null) {
+        const match = loopDef.match(/(\w+)\s+in\s+(.+)/);
+        if (!match) {
+            handleError(config, `Invalid loop syntax: "${loopDef}"`, `Element: <${tag}>`);
+            return;
+        }
+        [, alias, source] = match;
     }
 
-    const [, alias, source] = match;
-    const tpl = element.cloneNode(true) as Element;
-    tpl.removeAttribute('loop');
+    const template = element.cloneNode(true) as Element;
+    structuralAttributes.forEach(name => template.removeAttribute(name));
 
+    const placeholder = document.createComment(
+        loopDef !== null
+            ? `loop: ${loopDef}`
+            : ifExpr !== null
+                ? `if: ${ifExpr}`
+                : `unless: ${unlessExpr}`
+    );
     const parent = element.parentNode!;
-    const placeholder = document.createComment(`loop: ${loopDef}`);
     parent.insertBefore(placeholder, element);
     element.remove();
 
-    let slots: LoopSlot[] = [];
+    const isVisible = (candidate: Context): boolean => {
+        if (ifExpr !== null && !get(candidate, ifExpr, `if="${ifExpr}"`)) return false;
+        if (unlessExpr !== null && get(candidate, unlessExpr, `unless="${unlessExpr}"`)) return false;
+        return true;
+    };
 
-    return (ctx: Context, fns?: FunctionsContext) => {
+    /** The contexts to render one copy for, or null when the loop source is unusable. */
+    const contextsToRender = (ctx: Context): Context[] | null => {
+        if (loopDef === null) return isVisible(ctx) ? [ctx] : [];
+
         const items = resolvePath(ctx, source);
 
         if (items === undefined) {
             handleError(config, `Cannot resolve "${source}"`, `Loop source: "${loopDef}"`);
-            return;
+            return null;
         }
 
         if (!Array.isArray(items)) {
-            handleError(config, `"${source}" is not an array in loop: "${loopDef}"`,
-                `Element: <${tpl.tagName.toLowerCase()}>`);
-            return;
+            handleError(config, `"${source}" is not an array in loop: "${loopDef}"`, `Element: <${tag}>`);
+            return null;
         }
 
-        const reuseCount = Math.min(slots.length, items.length);
+        return items
+            .map(item => ({ ...ctx, [alias]: item }) as Context)
+            .filter(isVisible);
+    };
 
-        // Re-render existing slots in place
+    let instances: Instance[] = [];
+    let spare: Instance | null = null;
+
+    return (ctx: Context, fns?: FunctionsContext) => {
+        const contexts = contextsToRender(ctx);
+        if (!contexts) return;
+
+        const reuseCount = Math.min(instances.length, contexts.length);
+
+        // Re-render copies that are already in the DOM
         for (let i = 0; i < reuseCount; i++) {
-            slots[i].renderer({ ...ctx, [alias]: items[i] }, fns);
+            instances[i].render(contexts[i], fns);
         }
 
-        // Remove excess slots
-        for (let i = slots.length - 1; i >= items.length; i--) {
-            slots[i].element.remove();
+        // Remove excess copies, keeping the last one for re-use
+        for (let i = instances.length - 1; i >= contexts.length; i--) {
+            instances[i].element.remove();
+            spare = instances[i];
         }
 
-        // Create new slots via DocumentFragment for batch insertion
-        if (items.length > reuseCount) {
-            const frag = document.createDocumentFragment();
-            const newSlots: LoopSlot[] = [];
+        // Create missing copies via DocumentFragment for batch insertion
+        if (contexts.length > reuseCount) {
+            const fragment = document.createDocumentFragment();
+            const added: Instance[] = [];
 
-            for (let i = reuseCount; i < items.length; i++) {
-                // 1. Clone (detached, no connectedCallback yet)
-                const instance = tpl.cloneNode(true) as Element;
+            for (let i = reuseCount; i < contexts.length; i++) {
+                let instance = spare;
+                spare = null;
+                if (!instance) {
+                    // 1-2. Clone (detached, no connectedCallback yet) and compile
+                    const clone = template.cloneNode(true) as Element;
+                    instance = { element: clone, render: compileDOM(clone, config) };
+                }
 
-                // 2-3. Compile + render while detached; resolves mustache
-                const childRenderer = compileDOM(instance, config);
-                childRenderer({ ...ctx, [alias]: items[i] }, fns);
+                // 3. Render while detached; resolves mustache
+                instance.render(contexts[i], fns);
 
-                frag.appendChild(instance);
-                newSlots.push({ element: instance, renderer: childRenderer });
+                fragment.appendChild(instance.element);
+                added.push(instance);
             }
 
             // 4. Batch-insert into live DOM. Custom elements upgrade with final values
-            const insertAfter = reuseCount > 0
-                ? slots[reuseCount - 1].element
-                : placeholder;
-            parent.insertBefore(frag, insertAfter.nextSibling);
+            const insertAfter = reuseCount > 0 ? instances[reuseCount - 1].element : placeholder;
+            parent.insertBefore(fragment, insertAfter.nextSibling);
 
-            slots = slots.slice(0, reuseCount).concat(newSlots);
+            instances = instances.slice(0, reuseCount).concat(added);
         } else {
-            slots.length = items.length;
+            instances.length = contexts.length;
         }
     };
 }
-  
-/**
- * Structural patchers (loop, if, unless) take full ownership of a node.
- * They replace the original with a placeholder, then on each render they
- * clone, compile, and resolve the node independently. When one matches,
- * content patchers and child traversal are skipped for that node.
- */
-const structuralPatchers: Patcher[] = [
-    loopPatcher,
-    ifPatcher,
-    unlessPatcher
-];
 
 /** Content patchers resolve mustache expressions and bind `r-<event>` handlers. */
 const contentPatchers: Patcher[] = [
@@ -622,7 +620,7 @@ const contentPatchers: Patcher[] = [
  * Walks the DOM tree and collects setters from patchers.
  *
  * Processing order per node:
- * 1. Try structural patchers. If one matches, it owns the node (skip steps 2-3)
+ * 1. Try the structural patcher. If it matches, it owns the node (skip steps 2-3)
  * 2. Run content patchers (text interpolation, attribute interpolation)
  * 3. Recurse into child nodes
  */
@@ -632,12 +630,10 @@ function compileDOM(root: Node, config: EngineConfig): (ctx: Context, fns?: Func
 
     function processNode(node: Node) {
         // Structural directives own the node; they clone + compileDOM internally
-        for (const patch of structuralPatchers) {
-            const setter = patch(node, get, config);
-            if (setter) {
-                setters.push(setter);
-                return;
-            }
+        const structural = structuralPatcher(node, get, config);
+        if (structural) {
+            setters.push(structural);
+            return;
         }
 
         // Content patchers: resolve {{expr}} in text and attributes

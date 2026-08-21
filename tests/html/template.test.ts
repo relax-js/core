@@ -162,6 +162,49 @@ describe('m.ts template engine', () => {
             render({ v: 'plain' });
             expect(content.querySelector('div')?.getAttribute('value')).toBe('plain');
         });
+
+        it('literal text around an expression is kept', () => {
+            const { content, render } = compileTemplate(
+                '<img src="/avatars/{{user.id}}.png" alt="Avatar for {{user.name}}">'
+            );
+            render({ user: { id: 7, name: 'Alice' } });
+
+            const img = content.querySelector('img');
+            expect(img?.getAttribute('src')).toBe('/avatars/7.png');
+            expect(img?.getAttribute('alt')).toBe('Avatar for Alice');
+        });
+
+        it('several expressions in one attribute are composed with the literals between them', () => {
+            const { content, render } = compileTemplate(
+                '<div class="finding depth-{{depth}} {{severity}}"></div>'
+            );
+            render({ depth: 2, severity: 'warn' });
+            expect(content.querySelector('div')?.getAttribute('class')).toBe('finding depth-2 warn');
+        });
+
+        it('composed attribute is recomposed on every render', () => {
+            const { content, render } = compileTemplate('<div class="row row-{{index}}"></div>');
+
+            render({ index: 0 });
+            expect(content.querySelector('div')?.getAttribute('class')).toBe('row row-0');
+
+            render({ index: 1 });
+            expect(content.querySelector('div')?.getAttribute('class')).toBe('row row-1');
+        });
+
+        it('composed value on a form control still writes the live property', () => {
+            const { content, render } = compileTemplate('<input value="Hello {{name}}">');
+            const input = content.querySelector('input') as HTMLInputElement;
+
+            render({ name: 'Alice' });
+            expect(input.value).toBe('Hello Alice');
+        });
+
+        it('a boolean only toggles the attribute when the expression is the whole value', () => {
+            const { content, render } = compileTemplate('<div data-state="busy: {{busy}}"></div>');
+            render({ busy: false });
+            expect(content.querySelector('div')?.getAttribute('data-state')).toBe('busy: false');
+        });
     });
 
     describe('if conditional', () => {
@@ -756,6 +799,60 @@ describe('m.ts template engine', () => {
             expect(content.querySelectorAll('li').length).toBe(3);
             expect(content.querySelectorAll('.badge').length).toBe(2);
             expect(content.querySelector('p')).toBeNull();
+        });
+
+        it('if on a looping element drops the items that fail the condition', () => {
+            const { content, render } = compileTemplate(
+                '<ul><li loop="item in items" if="item.visible">{{item.name}}</li></ul>'
+            );
+            render({
+                items: [
+                    { name: 'Apple', visible: true },
+                    { name: 'Hidden', visible: false },
+                    { name: 'Pear', visible: true }
+                ]
+            });
+
+            const items = Array.from(content.querySelectorAll('li')).map(li => li.textContent);
+            expect(items).toEqual(['Apple', 'Pear']);
+        });
+
+        it('unless on a looping element drops the items that match the condition', () => {
+            const { content, render } = compileTemplate(
+                '<ul><li loop="item in items" unless="item.archived">{{item.name}}</li></ul>'
+            );
+            render({
+                items: [
+                    { name: 'Apple', archived: false },
+                    { name: 'Old', archived: true }
+                ]
+            });
+
+            const items = Array.from(content.querySelectorAll('li')).map(li => li.textContent);
+            expect(items).toEqual(['Apple']);
+        });
+
+        it('a looping condition is re-evaluated when the data changes', () => {
+            const { content, render } = compileTemplate(
+                '<ul><li loop="item in items" if="item.visible">{{item.name}}</li></ul>'
+            );
+
+            render({ items: [{ name: 'Apple', visible: true }, { name: 'Pear', visible: false }] });
+            expect(content.querySelectorAll('li').length).toBe(1);
+
+            render({ items: [{ name: 'Apple', visible: true }, { name: 'Pear', visible: true }] });
+            expect(Array.from(content.querySelectorAll('li')).map(li => li.textContent))
+                .toEqual(['Apple', 'Pear']);
+        });
+
+        it('if and unless on the same element both have to pass', () => {
+            const { content, render } = compileTemplate('<span if="ready" unless="busy">Go</span>');
+
+            render({ ready: true, busy: true });
+            expect(content.querySelector('span')).toBeNull();
+
+            render({ ready: true, busy: false });
+            expect(content.querySelector('span')?.textContent).toBe('Go');
         });
     });
 

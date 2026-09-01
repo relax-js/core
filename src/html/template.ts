@@ -399,10 +399,12 @@ function attributeInterpolationPatcher(node: Node, _get: Getter, config: EngineC
 
 /**
  * Binds event handlers declared with `r-<event>="handler(args)"`, for example
- * `r-click`, `r-change`, or `r-keypress`. The part after `r-` is treated as a
- * DOM event name and is only wired when the element actually supports it
- * (checked via the matching `on<event>` property); an unrecognised name is
- * reported as an error.
+ * `r-click`, `r-change`, or `r-keypress`. Every `r-` attribute is claimed and
+ * removed from the output, valid or not. The part after `r-` is treated as a
+ * DOM event name and checked via the matching `on<event>` property, which
+ * confirms the event exists rather than that this element fires it; an
+ * unrecognised name is reported as an error. Custom events have no `on<event>`
+ * property and so cannot be bound this way.
  *
  * The handler name is resolved from the functions context passed to `render`.
  * Arguments are resolved against the current data context, so inside a loop

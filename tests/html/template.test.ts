@@ -133,6 +133,23 @@ describe('m.ts template engine', () => {
             expect(input.value).toBe('Bob');
         });
 
+        it('value binding overwrites text the user is still editing, so editable fields need their own template', () => {
+            const { content, render } = compileTemplate('<input value="{{name}}">');
+            document.body.appendChild(content);
+            const input = content.querySelector('input') as HTMLInputElement;
+
+            render({ name: 'Alice' });
+            input.focus();
+            input.value = 'Alice is typing';
+
+            render({ name: 'Alice' });
+
+            expect(document.activeElement).toBe(input);
+            expect(input.value).toBe('Alice');
+
+            document.body.removeChild(content);
+        });
+
         it('checked binding updates the live checked property of a checkbox', () => {
             const { content, render } = compileTemplate('<input type="checkbox" checked="{{on}}">');
             const input = content.querySelector('input') as HTMLInputElement;

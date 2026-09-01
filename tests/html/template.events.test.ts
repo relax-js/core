@@ -67,6 +67,36 @@ describe('compileTemplate r-<event> handling', () => {
         expect(handler).not.toHaveBeenCalled();
     });
 
+    it('standard_event_name_is_wired_even_on_an_element_that_never_fires_it', () => {
+        const onError = vi.fn();
+        const onSubmit = vi.fn();
+        const { content, render } = compileTemplate('<div r-submit="onSubmit()"></div>', {
+            strict: false,
+            onError,
+        });
+        render({}, { onSubmit });
+
+        fire(content.querySelector('div')!, 'submit');
+
+        expect(onError).not.toHaveBeenCalled();
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('custom_event_name_is_rejected_because_no_on_property_exists_for_it', () => {
+        const onError = vi.fn();
+        const handler = vi.fn();
+        const { content, render } = compileTemplate(
+            '<div r-pageselected="handler()"></div>',
+            { strict: false, onError }
+        );
+        render({}, { handler });
+
+        fire(content.querySelector('div')!, 'pageselected');
+
+        expect(onError).toHaveBeenCalled();
+        expect(handler).not.toHaveBeenCalled();
+    });
+
     it('r_click_passes_object_argument_to_handler', () => {
         const removeRow = vi.fn();
         const { content, render } = compileTemplate('<button r-click="removeRow(row)">x</button>');

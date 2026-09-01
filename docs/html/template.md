@@ -94,6 +94,11 @@ keeps the input in sync every render:
 <input type="checkbox" checked="{{isActive}}">
 ```
 
+The cost for a field the user edits over time: every `render()` writes the property back,
+so re-rendering a template that contains a textarea being typed in replaces its text and
+moves the caret. Keep such a field out of the re-rendered template. Compile the editable
+region as its own template and render it only when you intend to replace its contents.
+
 **Boolean values toggle the attribute on and off.** When the whole attribute is
 one expression and it resolves to a real boolean, the attribute is added when
 `true` and removed when `false`. This makes `disabled` work as expected. A plain
@@ -342,13 +347,35 @@ tpl.render({}, { save: () => console.log('saved') });
 document.body.appendChild(tpl.content);
 ```
 
-The event name is only wired when the element actually supports it. An
-unrecognised name such as `r-clik` is reported through the `onError` callback
-instead of failing silently.
+The name is checked by looking for a matching `on<event>` property. That
+property comes from `GlobalEventHandlers`, so the check confirms the event
+exists at all, not that this element ever fires it: `r-submit` on a `<div>`
+passes and then never fires. An unrecognised name such as `r-clik` is reported
+through the `onError` callback instead of failing silently.
 
 The listener is attached once per element. Each render only refreshes the data
 the handler closes over, so handlers keep working as loops reuse, add, and
 remove rows.
+
+### What the `r-` prefix claims
+
+Every attribute starting with `r-` is treated as an event binding and is removed
+from the rendered output, valid or not. There is no list of recognised names, so
+an `r-` attribute meant for something else does not survive into the DOM.
+
+Custom events are out. A component dispatching its own `PageSelectedEvent` has
+no `onpageselected` property, so `r-pageselected` is rejected. Use
+`addEventListener` for those.
+
+The value must be a call expression. `r-click="save()"` binds, `r-click="save"`
+is reported as an error.
+
+Errors are per attribute: a bad `r-` attribute is reported and skipped while the
+other bindings on the same element still wire. In strict mode it throws instead.
+
+A misspelled *function* name is not caught while compiling, only when the event
+fires, because the functions context arrives with `render()`. Handlers stay
+inert until the first `render()`.
 
 ### Passing data to handlers
 
@@ -486,6 +513,19 @@ render({
     items: ['a', 'b', 'c'],
     isActive: true
 });
+```
+
+`Context` is internal and not exported, so declare view models passed to `render()` as
+`type` aliases rather than `interface` declarations. TypeScript gives a type alias an
+implicit index signature but withholds it from an interface, so an interface-typed value
+fails with "Index signature for type 'string' is missing". Nested values follow the same
+rule.
+
+```typescript
+type ProjectDetail = { id: string; name: string };
+
+const project: ProjectDetail = await client.getProject(id);
+render({ project });
 ```
 
 ### FunctionsContext

@@ -1,4 +1,4 @@
-# RouteLink
+# &lt;r-link&gt;
 
 A clickable element that triggers client-side navigation to a named route.
 

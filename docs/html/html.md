@@ -166,7 +166,7 @@ The `html` template is optimized for simple, updateable templates. For advanced 
 | Feature | `html` | `compileTemplate` |
 |---------|--------|-------------------|
 | Mustache bindings | Yes | Yes |
-| Event handlers | Yes | No |
+| Event handlers | Yes (`onclick=${fn}`) | Yes (`r-click="handler(args)"`) |
 | In-place updates | Yes | Yes |
 | Nested paths (`user.name`) | No | Yes |
 | Loops (`loop="item in items"`) | No | Yes |

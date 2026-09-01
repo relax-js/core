@@ -1,4 +1,4 @@
-# RouteTarget
+# &lt;r-route-target&gt;
 
 A web component that renders route components in response to navigation events.
 

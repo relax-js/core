@@ -141,7 +141,31 @@ This template engine is designed for **single-use updateable templates**:
 2. Render and add `fragment` to the DOM
 3. Call `update()` to push changes to the existing nodes
 
-For reusable templates that create multiple independent instances, use `compileTemplate` from [template](template.md).
+Step 2 happens once. `fragment` is a `DocumentFragment`, so adding it to the DOM moves its
+nodes out and leaves it empty. The bindings keep pointing at those nodes, which is what
+makes `update()` work.
+
+Calling the template function again does not give you a second instance. It returns the
+same, now empty, fragment and rebinds the nodes already on screen, so the first instance
+changes to the new data and nothing is added. Nothing reports this:
+
+```typescript
+const card = html`<p>{{name}}</p>`;
+host.appendChild(card({ name: 'Alice' }).fragment);
+host.appendChild(card({ name: 'Bob' }).fragment); // adds nothing, Alice now reads Bob
+```
+
+Evaluate the tagged literal again for a second instance:
+
+```typescript
+const card = (name: string) => html`<p>{{name}}</p>`({ name });
+host.appendChild(card('Alice').fragment);
+host.appendChild(card('Bob').fragment);
+```
+
+`compileTemplate` returns an element rather than a fragment, so its `content` survives
+being added to the DOM. It renders a collection through `loop=` rather than through
+multiple instances.
 
 ## Property vs Attribute Binding
 

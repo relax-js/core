@@ -242,6 +242,30 @@ describe('html template engine', () => {
         });
     });
 
+    describe('instance semantics', () => {
+        it('calling_the_template_function_again_rebinds_the_first_instance_instead_of_adding_one', () => {
+            const card = html`<p>{{name}}</p>`;
+            const host = document.createElement('div');
+
+            host.appendChild(card({ name: 'Alice' }).fragment);
+            host.appendChild(card({ name: 'Bob' }).fragment);
+
+            expect(host.querySelectorAll('p').length).toBe(1);
+            expect(host.textContent).toBe('Bob');
+        });
+
+        it('evaluating_the_tagged_literal_again_is_what_produces_an_independent_instance', () => {
+            const card = (name: string) => html`<p>{{name}}</p>`({ name });
+            const host = document.createElement('div');
+
+            host.appendChild(card('Alice').fragment);
+            host.appendChild(card('Bob').fragment);
+
+            expect(host.querySelectorAll('p').length).toBe(2);
+            expect(host.textContent).toBe('AliceBob');
+        });
+    });
+
     describe('mixed syntax', () => {
         it('should handle both ${} and {{}} in same template', () => {
             const staticValue = 'Static';

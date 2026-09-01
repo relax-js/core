@@ -15,7 +15,7 @@ This module provides templating utilities for rendering dynamic HTML content.
 
 ### html
 
-Best for: Single templates that need efficient updates
+Best for: One template with values spliced in from JavaScript
 
 ```typescript
 const card = html`<div>{{name}}</div>`;
@@ -49,7 +49,10 @@ renderer.updateRow(id, newData);
 
 ## Choosing the Right Tool
 
-- **Need in-place updates?** → Use `html`
+Both `html` and `compileTemplate` update in place, and each call site owns one DOM tree.
+The choice is how much the markup itself has to express.
+
+- **Plain values, no loops or conditionals?** → Use `html`
 - **Need loops/conditionals?** → Use `compileTemplate`
 - **Need loops together with event handlers?** → Use `compileTemplate` with `r-<event>` attributes
 - **Building a data table?** → Use `TableRenderer`

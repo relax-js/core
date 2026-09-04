@@ -74,6 +74,8 @@ customElements.define('user-card', UserCard);
 
 `html` covers a single template that updates in place. For loops, conditionals, pipes or `r-<event>` handlers, use `compileTemplate` instead: [Choosing the Right Tool](html/index.md#choosing-the-right-tool).
 
+Building a page that edits something? [Building a Form Page](forms/form-page.md) puts the template, the loading, the validation and the save in one component.
+
 Still no routing. You control navigation yourself.
 
 ---

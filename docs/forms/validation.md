@@ -1,6 +1,6 @@
 # Form Validation
 
-The `FormValidator` class provides form validation with HTML5 integration, error summaries, and custom validation support.
+`FormValidator` takes over the form's submit event. Constructing one is how you hook a submit, so reach for it even when the form has no validation rules, and do not add a submit listener of your own. On top of that it adds HTML5 validation, error summaries, and custom rules.
 
 ## Basic Usage
 
@@ -13,6 +13,8 @@ const validator = new FormValidator(form, {
 });
 ```
 
+For the full shape of a page built this way, see [Building a Form Page](form-page.md).
+
 ## Configuration Options
 
 ```typescript
@@ -22,9 +24,41 @@ interface ValidatorOptions {
     customChecks?: (form: HTMLFormElement) => void;  // Custom validation
     preventDefault?: boolean;          // Always prevent form submission
     preventDefaultOnFailed?: boolean;  // Prevent submission on failure (default: true)
-    submitCallback?: () => void;       // Called when form is valid
+    submitCallback?: () => void | Promise<void>;  // Awaited when the form is valid
 }
 ```
+
+## What happens to the native submit
+
+The browser's own submit, the one that posts the form and navigates, is suppressed in these cases:
+
+| Options | Valid form | Invalid form |
+|---|---|---|
+| `submitCallback` set | Suppressed, callback runs | Suppressed, callback skipped |
+| `preventDefault: true` | Suppressed | Suppressed |
+| `preventDefaultOnFailed: false` | Native submit happens | Native submit happens |
+| None of the above | Native submit happens | Suppressed |
+
+Supplying a `submitCallback` is enough on its own. The suppression happens before validation runs, so the page stays put whether the form passed or failed, and you never need to call `preventDefault()` yourself. `preventDefaultOnFailed` only has a say when validation failed.
+
+## Async submit callbacks
+
+`submitCallback` may return a promise and is awaited:
+
+```typescript
+const validator = new FormValidator(form, {
+    submitCallback: async () => {
+        const response = await post('/users', JSON.stringify(readData(form)));
+        if (!response.success) {
+            validator.addErrorToSummary('Save', response.statusReason);
+        }
+    }
+});
+```
+
+A rejected promise is reported through the global [onError](../Errors.md) handler as `submitCallback failed`, with the original error in `context.cause`. It is never swallowed.
+
+Pass an arrow function. The callback is invoked with the validator as its `this`, so a plain `function () {}` or a bare method reference sees the validator rather than your component.
 
 ## Auto-Validation
 

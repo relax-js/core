@@ -6,7 +6,8 @@ A TypeScript library for form validation, data mapping, and form manipulation wi
 
 The form utilities provide:
 
-- **[Validation](validation.md)** - Form validation with HTML5 integration, error summaries, and custom validators
+- **[Building a Form Page](form-page.md)** - The end-to-end shape: template, load, validate, save. Start here
+- **[Validation](validation.md)** - `FormValidator` takes over the form's submit event, and adds HTML5 validation, error summaries, and custom rules
 - **[Reading & Writing](reading-writing.md)** - Read and write form data with automatic type conversion
 - **[Form API](form-api.md)** - How RelaxJS supports the Form-Associated Custom Elements standard
 - **[Patterns](patterns.md)** - Common patterns for multi-step forms, file uploads, and state management

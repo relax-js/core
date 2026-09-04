@@ -99,6 +99,9 @@ so re-rendering a template that contains a textarea being typed in replaces its 
 moves the caret. Keep such a field out of the re-rendered template. Compile the editable
 region as its own template and render it only when you intend to replace its contents.
 
+Rendering once costs you nothing in behavior. Handlers wired by the first `render()` stay
+live for the life of the element, so a render-once template is still fully interactive.
+
 **Boolean values toggle the attribute on and off.** When the whole attribute is
 one expression and it resolves to a real boolean, the attribute is added when
 `true` and removed when `false`. This makes `disabled` work as expected. A plain
@@ -347,15 +350,63 @@ tpl.render({}, { save: () => console.log('saved') });
 document.body.appendChild(tpl.content);
 ```
 
-The name is checked by looking for a matching `on<event>` property. That
-property comes from `GlobalEventHandlers`, so the check confirms the event
-exists at all, not that this element ever fires it: `r-submit` on a `<div>`
-passes and then never fires. An unrecognised name such as `r-clik` is reported
-through the `onError` callback instead of failing silently.
+An unrecognised name such as `r-clik` is reported through the `onError` callback
+instead of failing silently.
 
 The listener is attached once per element. Each render only refreshes the data
 the handler closes over, so handlers keep working as loops reuse, add, and
-remove rows.
+remove rows. One `render()` is enough to arm them for good: a template you
+render a single time still has live handlers.
+
+### Cancelling the default action
+
+Return `false` from the handler to call `preventDefault()` on the event. This is
+how you stop a form from submitting natively:
+
+```typescript
+const tpl = compileTemplate(`
+    <form r-submit="save()">
+        <input name="title" required>
+        <button type="submit">Save</button>
+    </form>
+`);
+
+tpl.render({}, {
+    save: () => {
+        console.log('saving');
+        return false;
+    },
+});
+```
+
+An `async` handler returns a promise, never `false`, so it cannot cancel this
+way. Take the event and cancel it yourself before the first `await`:
+
+```html
+<form r-submit="save(event)">
+```
+
+```typescript
+tpl.render({}, {
+    save: async (event) => {
+        event.preventDefault();
+        await post('/items', JSON.stringify(readData(event.target)));
+    },
+});
+```
+
+For a real form, prefer [`FormValidator`](../forms/validation.md): it owns the
+submit event, runs validation first, and suppresses the native submit for you.
+`r-submit` is the raw binding for when you want neither. See
+[Building a Form Page](../forms/form-page.md) for the two side by side.
+
+### Which elements fire which events
+
+The name is checked by looking for a matching `on<event>` property. That
+property comes from `GlobalEventHandlers`, so the check confirms the event
+exists at all, not that this element ever fires it. `r-submit` on a `<div>`
+binds and stays silent, because nothing dispatches `submit` at a `<div>`. Put
+event bindings on the element that actually fires the event.
 
 ### What the `r-` prefix claims
 
@@ -375,7 +426,11 @@ other bindings on the same element still wire. In strict mode it throws instead.
 
 A misspelled *function* name is not caught while compiling, only when the event
 fires, because the functions context arrives with `render()`. Handlers stay
-inert until the first `render()`.
+inert until the first `render()`, and are live from then on.
+
+Later renders may omit the functions context. `render(newData)` keeps the one
+from the previous render, so pushing new data does not cost you the handlers.
+Pass `null` to drop it deliberately.
 
 ### Passing data to handlers
 
@@ -494,7 +549,7 @@ function compileTemplate(
 
 interface CompiledTemplate {
     content: DocumentFragment | HTMLElement;
-    render: (ctx: Context, fns?: FunctionsContext) => void;
+    render: (ctx: Context, fns?: FunctionsContext | null) => void;
 }
 ```
 
@@ -543,6 +598,15 @@ render(data, {
     add: (a, b) => a + b,
     greet: (name) => `Hello, ${name}!`
 });
+```
+
+The argument is optional after the first render. Omit it to keep the functions from the
+previous render, which is what a data-only update wants:
+
+```typescript
+render(data, fns);   // wires the handlers
+render(newData);     // new data, same handlers
+render(newData, null);  // drops the functions context
 ```
 
 ## Web Component Integration

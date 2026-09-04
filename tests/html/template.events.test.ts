@@ -5,6 +5,12 @@ function fire(el: Element, type: string): void {
     el.dispatchEvent(new Event(type, { bubbles: true }));
 }
 
+function fireCancelable(el: Element, type: string): Event {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    el.dispatchEvent(event);
+    return event;
+}
+
 describe('compileTemplate r-<event> handling', () => {
     it('r_click_calls_function_from_functions_context', () => {
         const save = vi.fn();
@@ -274,5 +280,104 @@ describe('compileTemplate r-<event> handling', () => {
         fire(content.querySelector('button')!, 'click');
 
         expect(save).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('compileTemplate r-<event> return value', () => {
+    it('returning_false_prevents_the_default_action', () => {
+        const { content, render } = compileTemplate('<form r-submit="save()"></form>');
+        render({}, { save: () => false });
+
+        const event = fireCancelable(content.querySelector('form')!, 'submit');
+
+        expect(event.defaultPrevented).toBe(true);
+    });
+
+    it('returning_nothing_leaves_the_default_action_intact', () => {
+        const { content, render } = compileTemplate('<form r-submit="save()"></form>');
+        render({}, { save: () => {} });
+
+        const event = fireCancelable(content.querySelector('form')!, 'submit');
+
+        expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('returning_a_truthy_value_leaves_the_default_action_intact', () => {
+        const { content, render } = compileTemplate('<form r-submit="save()"></form>');
+        render({}, { save: () => true });
+
+        const event = fireCancelable(content.querySelector('form')!, 'submit');
+
+        expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('async_handler_cannot_prevent_default_by_returning_false', () => {
+        const { content, render } = compileTemplate('<form r-submit="save()"></form>');
+        render({}, { save: async () => false });
+
+        const event = fireCancelable(content.querySelector('form')!, 'submit');
+
+        expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('handler_taking_the_event_can_prevent_the_default_itself', () => {
+        const { content, render } = compileTemplate('<form r-submit="save(event)"></form>');
+        render({}, { save: (event: Event) => event.preventDefault() });
+
+        const event = fireCancelable(content.querySelector('form')!, 'submit');
+
+        expect(event.defaultPrevented).toBe(true);
+    });
+});
+
+describe('compileTemplate functions context retention', () => {
+    it('handlers_keep_working_when_a_later_render_omits_the_functions_context', () => {
+        const pick = vi.fn();
+        const { content, render } = compileTemplate('<button r-click="pick(name)">x</button>');
+
+        render({ name: 'first' }, { pick });
+        render({ name: 'second' });
+
+        fire(content.querySelector('button')!, 'click');
+
+        expect(pick).toHaveBeenCalledWith('second');
+    });
+
+    it('passing_null_clears_the_functions_context', () => {
+        const onError = vi.fn();
+        const pick = vi.fn();
+        const { content, render } = compileTemplate('<button r-click="pick()">x</button>', {
+            strict: false,
+            onError,
+        });
+
+        render({}, { pick });
+        render({}, null);
+
+        fire(content.querySelector('button')!, 'click');
+
+        expect(pick).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalled();
+    });
+
+    it('interpolated_function_calls_survive_a_render_without_the_functions_context', () => {
+        const { content, render } = compileTemplate('<span>{{shout(name)}}</span>');
+
+        render({ name: 'ada' }, { shout: (n: string) => n.toUpperCase() });
+        render({ name: 'grace' });
+
+        expect(content.querySelector('span')!.textContent).toBe('GRACE');
+    });
+
+    it('handlers_stay_inert_until_the_first_render_supplies_functions', () => {
+        const pick = vi.fn();
+        const { content, render } = compileTemplate('<button r-click="pick()">x</button>', {
+            strict: false,
+        });
+
+        render({});
+        fire(content.querySelector('button')!, 'click');
+
+        expect(pick).not.toHaveBeenCalled();
     });
 });

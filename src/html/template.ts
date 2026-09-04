@@ -448,7 +448,16 @@ function eventPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | 
         element.addEventListener(eventName, (event) => {
             if (!currentCtx) return;
             const ctxWithEvent = { ...currentCtx, event } as unknown as Context;
-            evaluateExpression(parsed, ctxWithEvent, currentFns, config, debugInfo);
+            const result = evaluateExpression(
+                parsed,
+                ctxWithEvent,
+                currentFns,
+                config,
+                debugInfo
+            );
+            if (result === false) {
+                event.preventDefault();
+            }
         });
 
         updaters.push((ctx: Context, fns?: FunctionsContext) => {
@@ -626,7 +635,10 @@ const contentPatchers: Patcher[] = [
  * 2. Run content patchers (text interpolation, attribute interpolation)
  * 3. Recurse into child nodes
  */
-function compileDOM(root: Node, config: EngineConfig): (ctx: Context, fns?: FunctionsContext) => void {
+function compileDOM(
+    root: Node,
+    config: EngineConfig
+): (ctx: Context, fns?: FunctionsContext | null) => void {
     const setters: Setter[] = [];
     const get = createGetter(config);
 
@@ -654,12 +666,17 @@ function compileDOM(root: Node, config: EngineConfig): (ctx: Context, fns?: Func
     // Return memoized render function
     let lastCtx: Context | null = null;
     let lastFns: FunctionsContext | undefined = undefined;
-    return (ctx: Context, fns?: FunctionsContext) => {
+    let retainedFns: FunctionsContext | undefined = undefined;
+    return (ctx: Context, fns?: FunctionsContext | null) => {
+        if (fns !== undefined) {
+            retainedFns = fns ?? undefined;
+        }
+
         // Only re-render if context has changed
-        if (lastCtx !== ctx || lastFns !== fns) {
-            setters.forEach(fn => fn(ctx, fns));
+        if (lastCtx !== ctx || lastFns !== retainedFns) {
+            setters.forEach(fn => fn(ctx, retainedFns));
             lastCtx = ctx;
-            lastFns = fns;
+            lastFns = retainedFns;
         }
     };
 }
@@ -675,9 +692,11 @@ export interface CompiledTemplate {
      * Updates the DOM with the provided data context.
      * Memoized: only re-renders when context object reference changes.
      * @param ctx - Data context with values for template expressions
-     * @param fns - Optional functions context for callable expressions
+     * @param fns - Functions context for callable expressions. Omit it to keep the
+     * one from the previous render, so a data-only update leaves handlers wired.
+     * Pass `null` to deliberately drop it.
      */
-    render: (ctx: Context, fns?: FunctionsContext) => void;
+    render: (ctx: Context, fns?: FunctionsContext | null) => void;
 }
 
 /**

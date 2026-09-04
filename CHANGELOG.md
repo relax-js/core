@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.7.0 (2026-09-03)
+
+### Added
+
+- `return false` from an `r-<event>` handler calls `preventDefault()`, so `<form r-submit="save()">` no longer submits natively. An `async` handler returns a promise instead of `false` and must take `event` to cancel.
+- `docs/forms/form-page.md` builds a form page end to end: `compileTemplate`, `setFormData`, `FormValidator` and an async save in one component.
+
+### Fixed
+
+- `render(ctx)` without a functions context silently stopped every `r-<event>` handler on that template. The previous context is kept, so a data-only update leaves handlers wired. Pass `null` to drop it deliberately.
+- `submitCallback` was documented as `() => void`. It is `() => void | Promise<void>`.
+- The docs never stated that `FormValidator` takes over the form's submit event, nor what happens to the native submit. `docs/forms/validation.md` now leads with both.
+
+### Changed
+
+- `FormValidator` awaits `submitCallback`. An error rethrown by an `onError` handler that does not suppress now surfaces as an unhandled rejection instead of through `dispatchEvent`.
+- `CompiledTemplate.render` accepts `null` as its second argument.
+
 ## 1.6.1 (2026-08-21)
 
 ### Fixed

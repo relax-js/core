@@ -2,6 +2,8 @@
 
 Functions for reading and writing form data with automatic type conversion.
 
+These functions move data in and out of a form. They do not hook the submit event. [`FormValidator`](validation.md) is what calls them at the right moment, and [Building a Form Page](form-page.md) shows the two working together.
+
 ## mapFormToClass
 
 Maps form field values to a class instance's properties with type conversion. Provides full type safety by populating an existing typed object.

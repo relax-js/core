@@ -96,7 +96,7 @@ export class FormValidator {
             throw new Error('Form must be specified.');
         }
 
-        this.form.addEventListener('submit', (event) => {
+        this.form.addEventListener('submit', async (event) => {
             if (
                 options?.preventDefault ||
                 this.options?.submitCallback != null
@@ -109,13 +109,7 @@ export class FormValidator {
 
             if (this.validateForm()) {
                 try {
-                    const result = this.options?.submitCallback?.call(this);
-                    if (result instanceof Promise) {
-                        result.catch((cause) => {
-                            const error = reportError('submitCallback failed', { cause });
-                            if (error) throw error;
-                        });
-                    }
+                    await this.options?.submitCallback?.call(this);
                 } catch (cause) {
                     const error = reportError('submitCallback failed', { cause });
                     if (error) throw error;

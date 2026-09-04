@@ -176,6 +176,7 @@ No buy-in required. No migration path to worry about.
 - [Why Relaxjs?](docs/WhyRelaxjs.md) - Detailed comparison with frameworks
 - [Getting Started](docs/GettingStarted.md) - Progressive adoption guide (7 levels)
 - [Architecture](docs/Architecture.md)
+- [Building a Form Page](docs/forms/form-page.md) - Template, load, validate and save in one component
 - [Form Utilities](docs/forms/forms.md) - Validation, reading/writing, custom form components
 - [Routing](docs/routing/Routing.md) - Routes, guards, layouts, navigation
 - [HTML Templates](docs/html/html.md) - Tagged templates with data binding

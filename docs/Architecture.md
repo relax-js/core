@@ -81,15 +81,13 @@ class UserProfile extends HTMLElement {
     }
 
     async loadUser() {
-        const api = container.resolve(ApiService);
-        const user = await api.get('/user/profile');
-        setFormData(this.form, user.as<User>());
+        const response = await get('/user/profile');
+        setFormData(this.form, response.as<User>());
     }
 
     async save() {
         const data = readData(this.form);
-        const api = container.resolve(ApiService);
-        await api.put('/user/profile', JSON.stringify(data));
+        await put('/user/profile', JSON.stringify(data));
     }
 }
 
@@ -200,37 +198,27 @@ The form utilities support both native HTML form elements and modern form-associ
 
 ## Template Rendering
 
-### Static Templates (html)
-
-```typescript
-const template = html`
-    <div class="card">
-        <h2>${'title'}</h2>
-        <p>${'description'}</p>
-    </div>
-`;
-
-// Creates new DOM each time
-const fragment = template({ title: 'Hello', description: 'World' });
-container.appendChild(fragment);
-```
-
-### Updateable Templates (html)
+`html` renders once and then updates in place. Calling the template returns the fragment to
+insert plus an `update` function that rebinds the same DOM nodes rather than rebuilding them.
 
 ```typescript
 const template = html`
     <div class="user">
         <span>{{name}}</span>
-        <span>{{score|number}}</span>
+        <span>{{score}}</span>
     </div>
 `;
 
 const rendered = template({ name: 'John', score: 42 });
 container.appendChild(rendered.fragment);
 
-// Later, update without recreating DOM
 rendered.update({ name: 'Jane', score: 100 });
 ```
+
+For loops, conditionals and pipes, reach for [compileTemplate](html/template.md) instead.
+
+An expression that cannot be resolved renders as empty and is reported through
+[onError()](Errors.md), so a mistyped path shows up in tests rather than as a blank element.
 
 ## Service Architecture
 
@@ -324,10 +312,8 @@ const extracted = readData(form);  // Extracts values from custom components
 const validator = new FormValidator(form);  // Validates custom components
 ```
 
-3. **Explicit over implicit**: Prefer explicit method calls over magic bindings
+4. **Explicit over implicit**: Prefer explicit method calls over magic bindings
 
-4. **Type everything**: Use TypeScript interfaces for all data structures
+5. **Type everything**: Use TypeScript interfaces for all data structures
 
-5. **CSS variables for theming**: Use semantic variable names
-
-6. **Form-associated components**: Use `ElementInternals` for custom form controls
+6. **CSS variables for theming**: Use semantic variable names

@@ -18,7 +18,7 @@ Single-package TypeScript library. Key areas:
 Each feature area (forms, routing, DI, etc.) is designed to be usable independently.
 
 ## Stack
-TypeScript library targeting ES2020, bundled for ESNext module consumers. One runtime dependency (reflect-metadata, for decorator-based DI). Build pipeline: tsc for declarations, esbuild via `build.js` for bundles. Tests run under Vitest with jsdom. See `package.json` and `tsconfig.json` for specifics.
+TypeScript library targeting ES2020, bundled for ESNext module consumers. No runtime dependencies. Build pipeline: tsc for declarations, esbuild via `build.js` for bundles. Tests run under Vitest with jsdom. See `package.json` and `tsconfig.json` for specifics.
 
 ## External systems
 None. All features are self-contained.

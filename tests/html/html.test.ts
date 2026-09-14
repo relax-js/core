@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { html } from '../../src/html/html';
+import { onError, RelaxError } from '../../src/errors';
 
 describe('html template engine', () => {
     describe('basic rendering', () => {
@@ -243,7 +244,17 @@ describe('html template engine', () => {
     });
 
     describe('instance semantics', () => {
+        beforeEach(() => {
+            onError(null as any);
+        });
+
         it('calling_the_template_function_again_rebinds_the_first_instance_instead_of_adding_one', () => {
+            const reported: RelaxError[] = [];
+            onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
+
             const card = html`<p>{{name}}</p>`;
             const host = document.createElement('div');
 
@@ -252,6 +263,41 @@ describe('html template engine', () => {
 
             expect(host.querySelectorAll('p').length).toBe(1);
             expect(host.textContent).toBe('Bob');
+            expect(reported).toHaveLength(1);
+            expect(reported[0].message).toContain('update(');
+        });
+
+        it('binding_a_second_time_is_reported_because_it_silently_replaces_the_first_instance', () => {
+            const reported: RelaxError[] = [];
+            onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
+
+            const card = html`<p>{{name}}</p>`;
+            card({ name: 'Alice' });
+            expect(reported).toHaveLength(0);
+
+            card({ name: 'Bob' });
+            card({ name: 'Carol' });
+
+            expect(reported).toHaveLength(2);
+            expect(reported[0].context.bindCount).toBe(2);
+            expect(reported[1].context.bindCount).toBe(3);
+        });
+
+        it('updating_an_instance_in_place_is_the_supported_path_and_reports_nothing', () => {
+            const reported: RelaxError[] = [];
+            onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
+
+            const instance = html`<p>{{name}}</p>`({ name: 'Alice' });
+            instance.update({ name: 'Bob' });
+            instance.update({ name: 'Carol' });
+
+            expect(reported).toHaveLength(0);
         });
 
         it('evaluating_the_tagged_literal_again_is_what_produces_an_independent_instance', () => {
@@ -272,6 +318,64 @@ describe('html template engine', () => {
             const template = html`<div>${staticValue} and {{dynamic}}</div>`;
             const result = template({ dynamic: 'Dynamic' });
             expect(result.fragment.querySelector('div')?.textContent).toBe('Static and Dynamic');
+        });
+    });
+
+    describe('unresolved expressions are reported', () => {
+        beforeEach(() => {
+            onError(null as any);
+        });
+
+        function capture() {
+            const reported: RelaxError[] = [];
+            onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
+            return reported;
+        }
+
+        it('a_key_missing_from_the_render_context_is_reported', () => {
+            const reported = capture();
+
+            html`<div>{{missing}}</div>`({});
+
+            expect(reported).toHaveLength(1);
+            expect(reported[0].context.expression).toBe('missing');
+        });
+
+        it('a_key_that_exists_and_holds_null_is_a_deliberate_value_and_reports_nothing', () => {
+            const reported = capture();
+
+            html`<div>{{value}}</div>`({ value: null });
+
+            expect(reported).toHaveLength(0);
+        });
+
+        it('a_resolved_expression_reports_nothing', () => {
+            const reported = capture();
+
+            html`<div>{{name}}</div>`({ name: 'John' });
+
+            expect(reported).toHaveLength(0);
+        });
+
+        it('an_update_with_a_missing_key_is_reported_too', () => {
+            const reported = capture();
+
+            const result = html`<div>{{name}}</div>`({ name: 'John' } as { name?: string });
+            result.update({});
+
+            expect(reported).toHaveLength(1);
+            expect(reported[0].context.expression).toBe('name');
+        });
+
+        it('a_missing_substitution_is_reported_instead_of_being_dropped', () => {
+            const reported = capture();
+
+            html`<div>${undefined}</div>`({});
+
+            expect(reported).toHaveLength(1);
         });
     });
 });

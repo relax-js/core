@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { flush } from '../../src/testing';
 import { SSEClient, SSEDataEvent, SSEErrorEvent } from '../../src/http/ServerSentEvents';
 import { configure, setFetch, HttpError } from '../../src/http/http';
 
@@ -442,7 +443,6 @@ function respondWithStream(stream: FakeBodyStream) {
     };
 }
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('SSEClient fetch transport', () => {
     let mockFetch: ReturnType<typeof vi.fn>;

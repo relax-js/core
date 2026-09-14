@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.8.0 (2026-09-14)
+
+### Added
+
+- `window.relaxErrors` holds every reported error, most recent last, whether an `onError` handler is registered or not. Read it after a failure instead of reproducing with a flag on.
+- `window.relaxDebug = { errors: true }` prints every reported error with its context.
+- The first error reported with nothing listening prints one line naming `window.relaxErrors`, the `errors` flag, `onError()` and `captureRelaxErrors()`. Once per page load.
+- `compileTemplate<T>` accepts any object as view model. An `interface` or a class instance works; an index signature is no longer required.
+- `docs/routing/`, `docs/forms/`, `docs/setup/` and `docs/i18n/` have an `index.md`.
+- `init-agents` stamps each copied skill with the package version. Running it again after an upgrade lists the copies that are behind.
+
+### Fixed
+
+Failures that produced no DOM and no error now report through `onError()`:
+
+- `render()` given the same context object as the previous render. Nothing was updated because the memoization compares by identity, and nothing said so.
+- An `html` template function called a second time. It re-drove the first instance and returned an empty fragment.
+- A navigation still parked after a task because no `<r-route-target>` with that name is connected, and a parked navigation replaced by a later one to the same target.
+- A render writing `value`, `checked` or `selected` to the element that has focus, replacing what was being typed.
+- A route whose component is never registered went to `console.warn` only. It reports, so a test can see it.
+
+### Changed
+
+- A strict-mode template throws when `render()` is skipped for an identical context, as it does for any other reported template error.
+- The `relaxjs-templates` skill no longer explains the failures above; the error messages do.
+
 ## 1.7.0 (2026-09-03)
 
 ### Added

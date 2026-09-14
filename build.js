@@ -11,6 +11,7 @@ const entryPoints = [
     { entry: 'src/utils/index.ts', out: 'utils/index' },
     { entry: 'src/di/index.ts', out: 'di/index' },
     { entry: 'src/collections/Index.ts', out: 'collections/index' },
+    { entry: 'src/testing/index.ts', out: 'testing/index' },
 ];
 
 const commonOptions = {

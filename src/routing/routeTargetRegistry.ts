@@ -14,6 +14,20 @@ interface TargetRegistration {
 const targets = new Map<string | undefined, TargetRegistration>();
 const pendingEvents = new Map<string | undefined, NavigateRouteEvent>();
 const detachedHistories = new Map<string | undefined, NavigationHistory>();
+const parkedReports = new Map<string | undefined, ReturnType<typeof setTimeout>>();
+
+/**
+ * Stops the pending report for a target, used when the navigation is claimed or
+ * discarded. A parked navigation is only wrong once it is clear that no target
+ * is coming, so the report has to be cancellable.
+ */
+function cancelParkedReport(name: string | undefined) {
+    const timer = parkedReports.get(name);
+    if (timer !== undefined) {
+        clearTimeout(timer);
+        parkedReports.delete(name);
+    }
+}
 
 /**
  * Registers a route target handler.
@@ -57,6 +71,7 @@ export function registerRouteTarget(
     const pending = pendingEvents.get(name);
     if (pending) {
         pendingEvents.delete(name);
+        cancelParkedReport(name);
         if (window.relaxDebug?.routing) {
             console.log(
                 '[relaxjs:routing] replaying parked navigation into target',
@@ -95,6 +110,8 @@ export function getTargetHistory(name?: string): NavigationHistory | undefined {
 }
 
 export function clearPendingNavigations() {
+    parkedReports.forEach((timer) => clearTimeout(timer));
+    parkedReports.clear();
     pendingEvents.clear();
     targets.clear();
     detachedHistories.clear();
@@ -113,6 +130,37 @@ function entryFromEvent(evt: NavigateRouteEvent): NavigationEntry | undefined {
     };
 }
 
+/**
+ * Reports a parked navigation that nobody claimed.
+ *
+ * Parking is correct on its own: a target can connect later, and the navigation
+ * is replayed when it does. What is never correct is parking forever, which
+ * renders nothing and fails nothing. One task is enough for the target to
+ * upgrade and connect, so anything still waiting after that is a target that is
+ * not coming.
+ */
+function reportIfStillParked(evt: NavigateRouteEvent) {
+    cancelParkedReport(evt.routeTarget);
+
+    const timer = setTimeout(() => {
+        parkedReports.delete(evt.routeTarget);
+        if (pendingEvents.get(evt.routeTarget) !== evt) return;
+
+        reportError(
+            `Navigation to "${evt.route.name}" is waiting for a route target named ` +
+                `"${evt.routeTarget ?? 'default'}", which is not connected, so nothing rendered. ` +
+                'Add a matching <r-route-target> to the page, or correct the route target name',
+            {
+                route: evt.route.name,
+                target: evt.routeTarget ?? 'default',
+                registeredTargets: Array.from(targets.keys(), (name) => name ?? 'default'),
+            },
+        );
+    }, 0);
+
+    parkedReports.set(evt.routeTarget, timer);
+}
+
 function dispatchToTarget(evt: NavigateRouteEvent) {
     const reg = targets.get(evt.routeTarget);
     if (!reg) {
@@ -127,7 +175,22 @@ function dispatchToTarget(evt: NavigateRouteEvent) {
                 }
             );
         }
+        const replaced = pendingEvents.get(evt.routeTarget);
+        if (replaced) {
+            reportError(
+                `A navigation to "${replaced.route.name}" was still waiting for the route target ` +
+                    `"${evt.routeTarget ?? 'default'}" to connect and has been replaced by ` +
+                    `"${evt.route.name}". Only the last one will render`,
+                {
+                    target: evt.routeTarget ?? 'default',
+                    discarded: replaced.route.name,
+                    kept: evt.route.name,
+                },
+            );
+        }
+
         pendingEvents.set(evt.routeTarget, evt);
+        reportIfStillParked(evt);
         return;
     }
 

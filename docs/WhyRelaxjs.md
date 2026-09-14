@@ -113,25 +113,29 @@ async function saveUser() {
 }
 ```
 
-## Custom Template Syntax vs Standard HTML
+## Compiled Template Language vs HTML With Expressions
 
 **Framework approach:** JSX, Angular templates, Vue SFCs. Each framework has its own syntax that requires compilation. Editors need plugins for proper syntax highlighting and error checking.
 
-**Relaxjs approach:** Standard HTML. Your templates are either HTML strings, `<template>` elements, or DOM APIs. No compilation step required for templates.
+**Relaxjs approach:** HTML strings, `<template>` elements or DOM APIs, plus a small expression syntax: `{{expr}}` for values, `loop` and `if`/`unless` attributes for structure, `|` for pipes and `r-<event>` for handlers. That is a template language, but a short one, and nothing compiles it. It is read at runtime by code you can step through.
 
 **Why this matters:**
-- Any HTML you know works, with no learning curve for template syntax
+- The markup around the expressions is HTML, so anything you know about HTML still applies
 - No build step required for template processing
 - Server-rendered HTML works without hydration complexity
-- Copy HTML from anywhere and it just works
+- The expression syntax fits on one page, and the engine that reads it is one file
 
 ```html
-<!-- Standard HTML, no special syntax -->
+<!-- HTML, with expressions where values go -->
 <form>
     <input name="email" type="email" required>
-    <button type="submit">Save</button>
+    <button type="submit">{{submitLabel}}</button>
 </form>
 ```
+
+An expression that cannot be resolved renders as empty and is reported through
+[onError()](Errors.md), so a mistyped path is catchable in a test instead of showing up as a
+blank element in a browser.
 
 ## Framework Lifecycle vs Native Web Component Lifecycle
 
@@ -329,7 +333,7 @@ With these principles, your codebase is faster and easier to debug. Every update
 
 | Aspect | Framework | Relaxjs |
 |--------|-----------|---------|
-| Learning curve | Framework-specific concepts | Web platform APIs |
+| Learning curve | Framework-specific concepts | Web platform APIs plus a small expression syntax |
 | Debugging | Framework DevTools required | Browser DevTools sufficient |
 | Bundle size | Framework runtime included | Just your code |
 | Upgrades | Migration guides, breaking changes | Stable browser APIs |

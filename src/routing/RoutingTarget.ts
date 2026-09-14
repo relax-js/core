@@ -105,8 +105,9 @@ export class RouteTarget extends HTMLElement {
         }
 
         const stillWaiting = setTimeout(() => {
-            console.warn(
-                `[relaxjs:routing] Route '${evt.route.name}' is waiting for <${tagName}> to be registered with customElements, and cannot render until it is. Check the tag name for typos, and that the module defining the component is imported.`
+            reportError(
+                `Route '${evt.route.name}' is waiting for <${tagName}> to be registered with customElements, and cannot render until it is. Check the tag name for typos, and that the module defining the component is imported.`,
+                { route: evt.route.name, componentTagName: tagName },
             );
         }, COMPONENT_REGISTRATION_WARNING_MS);
 

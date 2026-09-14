@@ -1,9 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RelaxError, onError, reportError, asyncHandler } from '../src/errors';
 
+/**
+ * The hint is printed once per page load, which in a test run means once per module instance.
+ * Resetting the module registry gives each test a module that has not hinted yet.
+ */
+async function freshErrorModule() {
+    vi.resetModules();
+    return await import('../src/errors');
+}
+
 describe('Error Handling', () => {
     beforeEach(() => {
         onError(null as any);
+        delete window.relaxDebug;
+        delete window.relaxErrors;
     });
 
     describe('RelaxError', () => {
@@ -85,6 +96,96 @@ describe('Error Handling', () => {
 
             const skippable = reportError('skippable', { optional: true });
             expect(skippable).toBeNull();
+        });
+    });
+
+    describe('discovering errors nobody is listening for', () => {
+        it('reported_errors_are_kept_on_window_so_they_can_be_read_after_the_fact', () => {
+            reportError('first', { step: 1 });
+            reportError('second', { step: 2 });
+
+            expect(window.relaxErrors?.map((e) => e.message)).toEqual(['first', 'second']);
+        });
+
+        it('a_suppressed_error_is_still_recorded_so_the_buffer_tells_the_truth', () => {
+            onError((_error, ctx) => ctx.suppress());
+
+            reportError('suppressed but real', {});
+
+            expect(window.relaxErrors?.map((e) => e.message)).toEqual(['suppressed but real']);
+        });
+
+        it('the_buffer_keeps_the_most_recent_errors_so_it_cannot_grow_without_bound', () => {
+            for (let i = 0; i < 60; i++) {
+                reportError(`error ${i}`, {});
+            }
+
+            expect(window.relaxErrors).toHaveLength(50);
+            expect(window.relaxErrors![0].message).toBe('error 10');
+            expect(window.relaxErrors![49].message).toBe('error 59');
+        });
+
+        it('an_unhandled_report_prints_one_hint_naming_how_to_see_errors', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const errors = await freshErrorModule();
+
+            errors.reportError('nobody is listening', {});
+
+            expect(warn).toHaveBeenCalledTimes(1);
+            const hint = warn.mock.calls[0][0] as string;
+            expect(hint).toContain('relaxDebug');
+            expect(hint).toContain('relaxErrors');
+            expect(hint).toContain('onError');
+            warn.mockRestore();
+        });
+
+        it('the_hint_is_not_repeated_once_it_has_been_shown', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const errors = await freshErrorModule();
+
+            errors.reportError('first', {});
+            errors.reportError('second', {});
+            errors.reportError('third', {});
+
+            expect(warn).toHaveBeenCalledTimes(1);
+            warn.mockRestore();
+        });
+
+        it('a_registered_handler_means_no_hint_because_someone_is_already_listening', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const errors = await freshErrorModule();
+            errors.onError(() => {});
+
+            errors.reportError('handled', {});
+
+            expect(warn).not.toHaveBeenCalled();
+            warn.mockRestore();
+        });
+
+        it('the_errors_flag_prints_every_report_so_a_browser_shows_them_all', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+            window.relaxDebug = { errors: true };
+
+            reportError('shown', { route: 'home' });
+            reportError('also shown', {});
+
+            expect(consoleError).toHaveBeenCalledTimes(2);
+            expect(consoleError.mock.calls[0][0]).toContain('shown');
+            expect(consoleError.mock.calls[0][1]).toEqual({ route: 'home' });
+            consoleError.mockRestore();
+        });
+
+        it('the_errors_flag_replaces_the_hint_because_the_reader_already_found_it', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const errors = await freshErrorModule();
+            window.relaxDebug = { errors: true };
+
+            errors.reportError('shown', {});
+
+            expect(warn).not.toHaveBeenCalled();
+            warn.mockRestore();
+            consoleError.mockRestore();
         });
     });
 

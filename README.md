@@ -4,11 +4,11 @@
 
 Web Component library with routing, forms, DI, templating, and i18n. No virtual DOM, no build magic, no surprise re-renders.
 
-- ~20KB gzipped, one dependency
+- No runtime dependencies
 - Native Web Components, zero vendor lock-in
 - Use only what you need: forms, routing, DI, i18n are all independent
 - No build step required, no compiler, no CLI
-- Standard HTML, standard DOM, standard async/await
+- Standard DOM, standard async/await, HTML templates with a small expression syntax
 
 ## Why Relaxjs?
 
@@ -18,7 +18,7 @@ Modern frameworks solve problems you might not have. Relaxjs takes the opposite 
 |-------------------|------------------|
 | Virtual DOM diffing | Direct DOM manipulation |
 | Reactive state management | Explicit updates |
-| Custom template syntax | Standard HTML |
+| Compiled template language | HTML plus `{{expr}}`, no compiler |
 | Framework-specific lifecycle | Native Web Component lifecycle |
 | Magic re-renders | You control what updates |
 | Custom rendering pipeline | Native async/await everywhere |
@@ -47,6 +47,20 @@ You write less boilerplate while keeping full control.
 ```bash
 npm install @relax.js/core
 ```
+
+## Coding Agents
+
+The rules an agent needs in order to write Relaxjs ship with the package. Install them into your project:
+
+```bash
+npx @relax.js/core init-agents
+```
+
+That writes a skill per area into `.claude/skills/`: the core model, then templates, forms, routing, services, testing and setup. Each one carries what an agent gets wrong from habit and links into the documentation for the rest. Tools without skill support can be pointed straight at `node_modules/@relax.js/core/skills/relaxjs/SKILL.md`.
+
+Agents cannot run your app, so they verify through tests. `@relax.js/core/testing` gives them `mount()`, `flush()` and `captureRelaxErrors()`, which turns a template typo into a failing assertion instead of a blank element.
+
+> [Working in a Relaxjs project](docs/AGENTS.md)
 
 ## Quick Examples
 
@@ -122,7 +136,7 @@ const validator = new FormValidator(form, {
 | **SSE** | Server-Sent Events dispatched as DOM events |
 | **Dependency Injection** | Decorator-based DI with constructor and property injection |
 | **i18n** | ICU message format, pluralization, locale-aware formatting |
-| **Pipes** | 15 built-in data transformations for templates |
+| **Pipes** | Built-in data transformations for templates |
 
 ## Where Relaxjs Fits
 
@@ -149,7 +163,6 @@ Relaxjs is not the right tool for everything:
 | | Relaxjs | React | Angular | Vue | Svelte |
 |---|---|---|---|---|---|
 | **Approach** | Web Components | Virtual DOM | Full framework | Virtual DOM | Compiler |
-| **Bundle size** | ~20KB gzipped | ~45KB | ~150KB+ | ~33KB | ~2KB runtime |
 | **Learning curve** | Low (vanilla TS) | Medium | High | Medium | Low-Medium |
 | **State management** | Explicit DOM updates | Hooks / Redux / Zustand | RxJS / Signals | Reactive refs | Stores / runes |
 | **Routing** | Built-in (simple) | react-router (separate) | Built-in (full) | vue-router (separate) | SvelteKit |
@@ -175,6 +188,7 @@ No buy-in required. No migration path to worry about.
 
 - [Why Relaxjs?](docs/WhyRelaxjs.md) - Detailed comparison with frameworks
 - [Getting Started](docs/GettingStarted.md) - Progressive adoption guide (7 levels)
+- [Working in a Relaxjs project](docs/AGENTS.md) - Agent skills, what each covers, and how to install them
 - [Architecture](docs/Architecture.md)
 - [Building a Form Page](docs/forms/form-page.md) - Template, load, validate and save in one component
 - [Form Utilities](docs/forms/forms.md) - Validation, reading/writing, custom form components
@@ -184,6 +198,7 @@ No buy-in required. No migration path to worry about.
 - [Dependency Injection](docs/DependencyInjection.md)
 - [i18n](docs/i18n/i18n.md) - Translations, ICU format, locale switching
 - [Pipes](docs/Pipes.md) - Data transformations for templates
+- [Testing](docs/testing.md) - Mounting components and asserting on reported errors
 - [Utilities](docs/utilities.md) - Sequential IDs, LinkedList, helpers
 
 ## Browser Support

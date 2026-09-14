@@ -27,6 +27,14 @@ export interface RelaxDebugFlags {
      * an empty string for these by default, so nothing else reports them.
      */
     templates?: boolean;
+
+    /**
+     * Every error reported through `reportError`, printed with its context.
+     * Errors are always collected in `window.relaxErrors` whether this is on
+     * or not, so turning it on is about seeing them as they happen rather than
+     * about recording them.
+     */
+    errors?: boolean;
 }
 
 declare global {

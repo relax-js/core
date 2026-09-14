@@ -60,6 +60,7 @@
  */
 
 import { PipeRegistry, defaultPipes, applyPipes } from '../pipes';
+import { reportError } from '../errors';
 
 /**
  * Configuration options for the template engine.
@@ -170,12 +171,20 @@ function resolvePath(ctx: ContextValue, path: string): ContextValue {
     return current;
 }
   
-  function handleError(config: EngineConfig, message: string, context: string, shouldThrow = false): void {
+  function handleError(
+      config: EngineConfig,
+      message: string,
+      context: string,
+      expression: string,
+      shouldThrow = false,
+  ): void {
     const formattedMessage = `[template error] ${message} (at ${context})`;
 
     if (window.relaxDebug?.templates) console.warn(formattedMessage);
     if (config.onError) config.onError(formattedMessage);
-    if (config.strict || shouldThrow) throw new Error(formattedMessage);
+
+    const error = reportError(formattedMessage, { expression, location: context });
+    if (error && (config.strict || shouldThrow)) throw error;
   }
   
 function createGetter(config: EngineConfig): Getter {
@@ -184,7 +193,7 @@ function createGetter(config: EngineConfig): Getter {
             const current = resolvePath(ctx, path);
 
             if (current === undefined) {
-                handleError(config, `Cannot resolve "${path}"`, debugInfo);
+                handleError(config, `Cannot resolve "${path}"`, debugInfo, path);
                 return '';
             }
 
@@ -200,7 +209,7 @@ function createGetter(config: EngineConfig): Getter {
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err);
-            handleError(config, `Exception resolving "${path}": ${errorMessage}`, debugInfo, true);
+            handleError(config, `Exception resolving "${path}": ${errorMessage}`, debugInfo, path, true);
             return '';
         }
     };
@@ -219,7 +228,7 @@ function evaluateExpression(
     if (parsed.type === 'function') {
         const fn = fns?.[parsed.fnName!];
         if (typeof fn !== 'function') {
-            handleError(config, `Function "${parsed.fnName}" not found`, debugInfo);
+            handleError(config, `Function "${parsed.fnName}" not found`, debugInfo, parsed.fnName!);
             return '';
         }
 
@@ -243,14 +252,14 @@ function evaluateExpression(
             value = fn(...resolvedArgs) as TemplateValue;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err);
-            handleError(config, `Error calling "${parsed.fnName}": ${errorMessage}`, debugInfo);
+            handleError(config, `Error calling "${parsed.fnName}": ${errorMessage}`, debugInfo, parsed.fnName!);
             return '';
         }
     } else {
         // Path resolution
         const resolved = resolvePath(ctx, parsed.path!);
         if (resolved === undefined) {
-            handleError(config, `Cannot resolve "${parsed.path}"`, debugInfo);
+            handleError(config, `Cannot resolve "${parsed.path}"`, debugInfo, parsed.path!);
             return '';
         }
         if (resolved === null) {
@@ -383,7 +392,19 @@ function attributeInterpolationPatcher(node: Node, _get: Getter, config: EngineC
                 : composeParts(parts, ctx, fns, config, debugInfo);
 
             if (liveValueAttributes.includes(name) && name in element) {
-                (element as unknown as Record<string, unknown>)[name] = value;
+                const live = element as unknown as Record<string, unknown>;
+                if (element === document.activeElement && live[name] !== value) {
+                    handleError(
+                        config,
+                        `render() replaced "${name}" on the <${element.tagName.toLowerCase()}> ` +
+                            'that currently has focus, discarding what was being typed and moving ' +
+                            'the caret. Render an edited field once, or keep it out of the region ' +
+                            'that re-renders',
+                        debugInfo,
+                        name,
+                    );
+                }
+                live[name] = value;
             } else if (typeof value === 'boolean') {
                 element.toggleAttribute(name, value);
             } else {
@@ -432,13 +453,13 @@ function eventPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | 
         element.removeAttribute(attr.name);
 
         if (!(`on${eventName}` in element)) {
-            handleError(config, `"${attr.name}" is not a known event for <${tag}>`, debugInfo);
+            handleError(config, `"${attr.name}" is not a known event for <${tag}>`, debugInfo, attr.name);
             continue;
         }
 
         const parsed = parseExpression(expr);
         if (parsed.type !== 'function') {
-            handleError(config, `${attr.name} must be a function call, got "${expr}"`, debugInfo);
+            handleError(config, `${attr.name} must be a function call, got "${expr}"`, debugInfo, attr.name);
             continue;
         }
 
@@ -521,7 +542,7 @@ function structuralPatcher(node: Node, get: Getter, config: EngineConfig): Sette
     if (loopDef !== null) {
         const match = loopDef.match(/(\w+)\s+in\s+(.+)/);
         if (!match) {
-            handleError(config, `Invalid loop syntax: "${loopDef}"`, `Element: <${tag}>`);
+            handleError(config, `Invalid loop syntax: "${loopDef}"`, `Element: <${tag}>`, loopDef);
             return;
         }
         [, alias, source] = match;
@@ -554,12 +575,12 @@ function structuralPatcher(node: Node, get: Getter, config: EngineConfig): Sette
         const items = resolvePath(ctx, source);
 
         if (items === undefined) {
-            handleError(config, `Cannot resolve "${source}"`, `Loop source: "${loopDef}"`);
+            handleError(config, `Cannot resolve "${source}"`, `Loop source: "${loopDef}"`, source);
             return null;
         }
 
         if (!Array.isArray(items)) {
-            handleError(config, `"${source}" is not an array in loop: "${loopDef}"`, `Element: <${tag}>`);
+            handleError(config, `"${source}" is not an array in loop: "${loopDef}"`, `Element: <${tag}>`, source);
             return null;
         }
 
@@ -638,7 +659,7 @@ const contentPatchers: Patcher[] = [
 function compileDOM(
     root: Node,
     config: EngineConfig
-): (ctx: Context, fns?: FunctionsContext | null) => void {
+): (ctx: Context, fns?: FunctionsContext | null) => boolean {
     const setters: Setter[] = [];
     const get = createGetter(config);
 
@@ -673,11 +694,14 @@ function compileDOM(
         }
 
         // Only re-render if context has changed
-        if (lastCtx !== ctx || lastFns !== retainedFns) {
-            setters.forEach(fn => fn(ctx, retainedFns));
-            lastCtx = ctx;
-            lastFns = retainedFns;
+        if (lastCtx === ctx && lastFns === retainedFns) {
+            return false;
         }
+
+        setters.forEach(fn => fn(ctx, retainedFns));
+        lastCtx = ctx;
+        lastFns = retainedFns;
+        return true;
     };
 }
 
@@ -685,18 +709,23 @@ function compileDOM(
  * Result of compiling a template.
  * Contains the DOM content and a render function for updating it with data.
  */
-export interface CompiledTemplate {
+export interface CompiledTemplate<T extends object = Context> {
     /** The compiled DOM element containing the template structure. */
     content: DocumentFragment | HTMLElement;
     /**
      * Updates the DOM with the provided data context.
-     * Memoized: only re-renders when context object reference changes.
+     *
+     * Memoized on the identity of `ctx`: passing the same object again renders
+     * nothing and is reported as an error, because a mutated object is
+     * indistinguishable from an unchanged one. Pass a new object when the data
+     * has changed.
+     *
      * @param ctx - Data context with values for template expressions
      * @param fns - Functions context for callable expressions. Omit it to keep the
      * one from the previous render, so a data-only update leaves handlers wired.
      * Pass `null` to deliberately drop it.
      */
-    render: (ctx: Context, fns?: FunctionsContext | null) => void;
+    render: (ctx: T, fns?: FunctionsContext | null) => void;
 }
 
 /**
@@ -757,11 +786,29 @@ export interface CompiledTemplate {
  * );
  * document.body.appendChild(tpl.content);
  */
-export function compileTemplate(templateStr: string, config: EngineConfig = { strict: false }): CompiledTemplate {
+export function compileTemplate<T extends object = Context>(
+    templateStr: string,
+    config: EngineConfig = { strict: false },
+): CompiledTemplate<T> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(`<template><div>${templateStr}</div></template>`, 'text/html');
     const content = doc.querySelector('template')!.content.firstElementChild as HTMLElement;
     const render = compileDOM(content, config);
 
-    return { content, render };
+    return {
+        content,
+        render(ctx: T, fns?: FunctionsContext | null) {
+            const rendered = render(ctx as unknown as Context, fns);
+            if (!rendered) {
+                handleError(
+                    config,
+                    'render() was given the same context object as last time, so nothing was ' +
+                        'updated. Mutating an object and rendering it again is not seen. Pass a ' +
+                        'new object, such as { ...state }, when the data has changed',
+                    `Template: "${templateStr.trim().slice(0, 120)}"`,
+                    'render(ctx)',
+                );
+            }
+        },
+    };
 }

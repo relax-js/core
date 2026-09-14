@@ -5,8 +5,16 @@
  */
 
 import { defaultPipes } from "../pipes";
+import { reportError } from "../errors";
 
 const pipes = defaultPipes;
+
+function reportUnresolved(message: string, context: string, expression: string): void {
+  const formattedMessage = `[template error] ${message} (at ${context})`;
+
+  if (window.relaxDebug?.templates) console.warn(formattedMessage);
+  reportError(formattedMessage, { expression, location: context });
+}
 
 interface Binding {
   originalValue?: unknown;
@@ -17,11 +25,11 @@ interface Binding {
  * Result of rendering a template.
  * Provides the DOM fragment and an update function for re-rendering.
  */
-export interface RenderTemplate {
+export interface RenderTemplate<T = any> {
   /** The rendered DOM fragment */
   fragment: DocumentFragment;
   /** Updates the DOM with new data without recreating elements */
-  update(context: any): void;
+  update(context: T): void;
 }
 
 /**
@@ -31,8 +39,14 @@ export interface RenderTemplate {
  * Supports:
  * - Template literal substitutions (`${}`)
  * - Mustache-style bindings (`{{property}}`)
- * - Pipe transformations (`{{value|uppercase}}`)
+ * - Calling a context function with context properties as arguments (`{{greet|name}}`)
  * - Event handler binding
+ *
+ * Pipes are not applied here. Reach for `compileTemplate` when you need them, along with
+ * loops, conditionals and dotted paths.
+ *
+ * An expression naming a key the context does not have renders as `undefined` and is
+ * reported through `onError()`, so a typo is catchable in a test.
  *
  * @param templateStrings - The static parts of the template literal
  * @param substitutions - The dynamic values interpolated into the template
@@ -44,11 +58,10 @@ export interface RenderTemplate {
  *     <div class="user">
  *         <h2>{{name}}</h2>
  *         <p>{{email}}</p>
- *         <span>{{createdAt|daysAgo}}</span>
  *     </div>
  * `;
  *
- * const result = template({ name: 'John', email: 'john@example.com', createdAt: new Date() });
+ * const result = template({ name: 'John', email: 'john@example.com' });
  * container.appendChild(result.fragment);
  *
  * // Later, update with new data
@@ -66,7 +79,7 @@ export interface RenderTemplate {
 export function html(
   templateStrings: TemplateStringsArray,
   ...substitutions: any[]
-): (context: any) => RenderTemplate {
+): <T>(context: T) => RenderTemplate<T> {
   // Preprocess template strings
   const template = document.createElement("template");
   const resolvedTemplate = resolveTemplate(templateStrings);
@@ -132,14 +145,26 @@ export function html(
   }
 
   // Return a function for binding
-  return function bind(context: any): RenderTemplate {
+  let bindCount = 0;
+  return function bind<T>(context: T): RenderTemplate<T> {
+    bindCount++;
+    if (bindCount > 1) {
+      reportError(
+        'This html template was already bound, so binding it again re-drove the first instance ' +
+          'with the new data and returned an empty fragment. Call update() on the instance you ' +
+          'already have to change its values, evaluate the tagged literal again for a second ' +
+          'instance, or use compileTemplate with loop to render a list.',
+        { bindCount, template: resolvedTemplate.trim() },
+      );
+    }
+
     bindings.forEach((x) => {
       x.setter(context);
     });
 
     return {
       fragment: template.content,
-      update(context: any) {
+      update(context: T) {
         bindings.forEach((x) => {
           x.setter(context);
         });
@@ -273,6 +298,13 @@ function parseTemplate(
       const index = parseInt(match[1], 10);
       const sub = substitutions[index];
       if (!sub) {
+        if (sub === undefined || sub === null) {
+          reportUnresolved(
+            `Substitution ${index} is ${sub}`,
+            `Template: "${template.trim()}"`,
+            `substitution[${index}]`
+          );
+        }
         continue;
       }
 
@@ -298,6 +330,14 @@ function parseTemplate(
         : [];
 
       textBindings.push((instance) => {
+        if (!(mustacheName in Object(instance ?? {}))) {
+          reportUnresolved(
+            `Cannot resolve "${mustacheName}"`,
+            `Template: "${template.trim()}"`,
+            mustacheName
+          );
+        }
+
         var value = instance[mustacheName];
 
         if (typeof value === "function") {

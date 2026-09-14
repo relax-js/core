@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { flush } from '../../src/testing';
 import { NavigateRouteEvent, Route, RouteData, clearPendingNavigations } from '../../src/routing';
 import type { LoadRoute, Routable } from '../../src/routing';
 import { onError, RelaxError } from '../../src/errors';
@@ -98,9 +99,6 @@ function dispatchRoute(route: Route, routeData?: RouteData, target?: string) {
     document.dispatchEvent(evt);
 }
 
-async function flush() {
-    await new Promise((r) => setTimeout(r, 0));
-}
 
 describe('RouteTarget', () => {
     let routeTarget: HTMLElement;
@@ -115,7 +113,11 @@ describe('RouteTarget', () => {
     describe('waiting for the component to be registered', () => {
         it('route_whose_component_is_never_registered_says_so_instead_of_waiting_silently', async () => {
             vi.useFakeTimers();
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const reported: RelaxError[] = [];
+            onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
 
             dispatchRoute({
                 name: 'ghost',
@@ -124,23 +126,24 @@ describe('RouteTarget', () => {
             });
             await vi.advanceTimersByTimeAsync(5000);
 
-            expect(warnSpy).toHaveBeenCalledWith(
+            expect(reported.map((e) => e.message)).toContainEqual(
                 expect.stringContaining('test-never-registered-page')
             );
 
-            warnSpy.mockRestore();
             vi.useRealTimers();
         });
 
         it('route_whose_component_is_already_registered_waits_without_warning', async () => {
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const reported: RelaxError[] = [];
+            onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
 
             dispatchRoute({ name: 'simple', path: '/simple', componentTagName: 'test-simple-page' });
             await flush();
 
-            expect(warnSpy).not.toHaveBeenCalled();
-
-            warnSpy.mockRestore();
+            expect(reported).toHaveLength(0);
         });
     });
 

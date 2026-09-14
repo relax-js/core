@@ -1,16 +1,19 @@
 # AGENTS.md
 
-## Vocabulary
-- (fill in with developer -- see first conversation turn)
+Rules for working **on** this library. For working **with** it in a consuming project, see `docs/AGENTS.md`.
 
 ## Definition of done
-- (fill in with developer)
+- The behaviour is covered by a test that fails without the change
+- `npx vitest run` and `npx tsc --noEmit` both pass
+- Public API changes were agreed with the developer first
+- Documentation in `docs/` matches what the code now does
 
 ## Repo orientation
 - `src/`: Library source, organized by feature
 - `tests/`: Test suite mirroring `src/` structure; suffix `.test.ts` or `.tests.ts`
 - `dist/`: Build output -- do not edit manually
-- `docs/`: Feature documentation in Markdown
+- `docs/`: Feature documentation in Markdown, shipped in the npm package
+- `src/testing/`: Test helpers published as `@relax.js/core/testing`; use them in tests here too
 - `build.js`: esbuild bundle script, runs after `tsc`
 - `coverage/`: Generated coverage reports -- not committed
 
@@ -19,7 +22,7 @@
 - `r-` prefix for all Web Component tag names
 - Form components must use `ElementInternals` with `formAssociated = true`
 - Form components must expose `name`, `value`, `disabled`, `required`, `dataType` and implement `getData()` / `setData()` for typed values
-- Decorator-based DI via `reflect-metadata` -- do not introduce another DI mechanism
+- DI declares dependencies explicitly (`@ContainerService({ inject: [...] })`), no metadata reflection -- do not introduce another DI mechanism
 - Explicit event classes extending `Event` (not `CustomEvent`); data as class properties; registered in `HTMLElementEventMap`
 - `declare type` for string enums -- never `enum`
 - Always ask before changing public APIs
@@ -38,7 +41,7 @@
 
 ## Anti-patterns here
 - Don't silently consume errors -- no empty `.catch()`, no catch-and-ignore
-- Don't use `CustomEvent` -- create explicit event classes extending `Event`
+- Don't use `CustomEvent` -- create explicit event classes extending `Event`. `SortChangeEvent` in `src/html/TableRenderer.ts` predates this rule and still extends `CustomEvent`; changing it would break consumers reading `event.detail`, so leave it and do not copy it
 - Don't use `enum` -- use `declare type` for string enums
 - Don't duplicate native HTML functionality; use native HTML when possible
 - Don't add reset styles
@@ -54,6 +57,7 @@
 ## Build / test
 - TypeScript strict mode must pass before merging (see `package.json` scripts)
 - All tests must pass before merging
-- Use `async/await` with a `flush()` helper (`setTimeout(r, 0)`) for async DOM operations in tests
+- Use `flush()` and `mount()` from `src/testing` for async DOM operations in tests; do not hand-roll timers
+- Assert on reported failures with `captureRelaxErrors()` rather than letting them go unnoticed
 - Reset module-level state in `beforeEach` (e.g., `onError(null as any)`)
 - See `package.json` scripts for exact commands

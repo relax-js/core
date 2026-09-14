@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { flush } from '../../src/testing';
 import {
     NavigateRouteEvent,
     Route,
@@ -26,9 +27,6 @@ if (!customElements.get('history-simple-page')) {
     customElements.define('history-simple-page', SimpleHistoryPage);
 }
 
-async function flush() {
-    await new Promise((r) => setTimeout(r, 0));
-}
 
 const routes: Route[] = [
     { name: 'home', path: '/', componentTagName: 'history-simple-page' },

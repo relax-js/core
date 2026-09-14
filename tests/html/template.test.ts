@@ -1,6 +1,7 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { compileTemplate, EngineConfig, FunctionsContext } from '../../src/html/template';
 import { createPipeRegistry } from '../../src/pipes';
+import { onError, RelaxError } from '../../src/errors';
 
 describe('m.ts template engine', () => {
     describe('text node interpolation', () => {
@@ -133,21 +134,58 @@ describe('m.ts template engine', () => {
             expect(input.value).toBe('Bob');
         });
 
-        it('value binding overwrites text the user is still editing, so editable fields need their own template', () => {
-            const { content, render } = compileTemplate('<input value="{{name}}">');
-            document.body.appendChild(content);
-            const input = content.querySelector('input') as HTMLInputElement;
+        it('value binding overwrites text the user is still editing, and says so', () => {
+            const reported: RelaxError[] = [];
+            const previous = onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
 
-            render({ name: 'Alice' });
-            input.focus();
-            input.value = 'Alice is typing';
+            try {
+                const { content, render } = compileTemplate('<input value="{{name}}">');
+                document.body.appendChild(content);
+                const input = content.querySelector('input') as HTMLInputElement;
 
-            render({ name: 'Alice' });
+                render({ name: 'Alice' });
+                input.focus();
+                input.value = 'Alice is typing';
 
-            expect(document.activeElement).toBe(input);
-            expect(input.value).toBe('Alice');
+                render({ name: 'Alice' });
 
-            document.body.removeChild(content);
+                expect(document.activeElement).toBe(input);
+                expect(input.value).toBe('Alice');
+                expect(reported).toHaveLength(1);
+                expect(reported[0].message).toContain('has focus');
+
+                document.body.removeChild(content);
+            } finally {
+                onError(previous as never);
+            }
+        });
+
+        it('re_rendering_a_focused_field_whose_value_is_unchanged_is_not_reported', () => {
+            const reported: RelaxError[] = [];
+            const previous = onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
+
+            try {
+                const { content, render } = compileTemplate('<input value="{{name}}">');
+                document.body.appendChild(content);
+                const input = content.querySelector('input') as HTMLInputElement;
+
+                render({ name: 'Alice' });
+                input.focus();
+
+                render({ name: 'Alice' });
+
+                expect(reported).toHaveLength(0);
+
+                document.body.removeChild(content);
+            } finally {
+                onError(previous as never);
+            }
         });
 
         it('checked binding updates the live checked property of a checkbox', () => {
@@ -948,16 +986,52 @@ describe('m.ts template engine', () => {
     });
 
     describe('re-rendering and memoization', () => {
-        it('should not re-render when same context object is passed', () => {
-            const { content, render } = compileTemplate('{{counter}}');
-            const ctx = { counter: 1 };
+        it('mutating_the_context_and_rendering_it_again_changes_nothing_and_is_reported', () => {
+            const reported: RelaxError[] = [];
+            const previous = onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
 
-            render(ctx);
-            expect(content.textContent).toBe('1');
+            try {
+                const { content, render } = compileTemplate('{{counter}}');
+                const ctx = { counter: 1 };
 
-            ctx.counter = 2;
-            render(ctx);
-            expect(content.textContent).toBe('1');
+                render(ctx);
+                expect(content.textContent).toBe('1');
+                expect(reported).toHaveLength(0);
+
+                ctx.counter = 2;
+                render(ctx);
+
+                expect(content.textContent).toBe('1');
+                expect(reported).toHaveLength(1);
+                expect(reported[0].message).toContain('same context object');
+            } finally {
+                onError(previous as never);
+            }
+        });
+
+        it('a_conditional_re_rendered_with_a_new_functions_context_does_not_report_from_inside_the_engine', () => {
+            const reported: RelaxError[] = [];
+            const previous = onError((error, ctx) => {
+                reported.push(error);
+                ctx.suppress();
+            });
+
+            try {
+                const { render } = compileTemplate(
+                    '<div if="visible"><button r-click="save()">Save</button></div>',
+                );
+                const ctx = { visible: true };
+
+                render(ctx, { save: () => {} });
+                render({ visible: true }, { save: () => {} });
+
+                expect(reported).toHaveLength(0);
+            } finally {
+                onError(previous as never);
+            }
         });
 
         it('should re-render when different context object is passed', () => {
@@ -1707,5 +1781,105 @@ describe('m.ts template engine', () => {
                 Node.prototype.insertBefore = origInsertBefore;
             }
         });
+    });
+});
+
+describe('typing the view model', () => {
+    it('a_view_model_declared_as_an_interface_compiles_without_an_index_signature', () => {
+        interface UserView {
+            name: string;
+            address: { city: string };
+        }
+
+        const { content, render } = compileTemplate<UserView>('{{name}} in {{address.city}}');
+        render({ name: 'Alice', address: { city: 'Malmo' } });
+
+        expect(content.textContent).toBe('Alice in Malmo');
+    });
+
+    it('a_class_instance_is_a_valid_view_model_too', () => {
+        class OrderView {
+            constructor(public reference: string) {}
+        }
+
+        const { content, render } = compileTemplate<OrderView>('{{reference}}');
+        render(new OrderView('A-17'));
+
+        expect(content.textContent).toBe('A-17');
+    });
+});
+
+describe('unresolved expressions are reported', () => {
+    beforeEach(() => {
+        onError(null as any);
+    });
+
+    function capture() {
+        const reported: RelaxError[] = [];
+        onError((error, ctx) => {
+            reported.push(error);
+            ctx.suppress();
+        });
+        return reported;
+    }
+
+    it('a_mistyped_path_is_reported_instead_of_rendering_blank_in_silence', () => {
+        const reported = capture();
+
+        const { content, render } = compileTemplate('<p>{{user.naem}}</p>');
+        render({ user: { name: 'Alice' } });
+
+        expect(reported).toHaveLength(1);
+        expect(reported[0].message).toContain('user.naem');
+        expect(content.textContent).toBe('');
+    });
+
+    it('the_error_context_names_the_expression_so_the_failure_can_be_acted_on', () => {
+        const reported = capture();
+
+        const { render } = compileTemplate('<p>{{user.naem}}</p>');
+        render({ user: { name: 'Alice' } });
+
+        expect(reported[0].context.expression).toBe('user.naem');
+    });
+
+    it('an_unknown_function_is_reported', () => {
+        const reported = capture();
+
+        const { render } = compileTemplate('<p>{{formatDate(createdAt)}}</p>');
+        render({ createdAt: 'today' });
+
+        expect(reported).toHaveLength(1);
+        expect(reported[0].message).toContain('formatDate');
+    });
+
+    it('a_resolved_expression_reports_nothing', () => {
+        const reported = capture();
+
+        const { render } = compileTemplate('<p>{{user.name}}</p>');
+        render({ user: { name: 'Alice' } });
+
+        expect(reported).toHaveLength(0);
+    });
+
+    it('reporting_does_not_change_what_renders_so_existing_apps_keep_working', () => {
+        const { content, render } = compileTemplate('<p>{{missing}}</p>');
+        render({});
+
+        expect(content.textContent).toBe('');
+    });
+
+    it('strict_mode_still_throws', () => {
+        const { render } = compileTemplate('<p>{{missing}}</p>', { strict: true });
+
+        expect(() => render({})).toThrow(/missing/);
+    });
+
+    it('suppressing_the_error_prevents_the_strict_mode_throw', () => {
+        capture();
+
+        const { render } = compileTemplate('<p>{{missing}}</p>', { strict: true });
+
+        expect(() => render({})).not.toThrow();
     });
 });

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.0 (2026-09-19)
+
+### Breaking
+
+- ES modules only; `require` exports removed.
+- Root and sub-path entries share one module instance. Before, each carried its own `onError()`, route table and http config.
+
+### Added
+
+- `mountRouting()` and `fakeServer()` in `@relax.js/core/testing`.
+
+### Fixed
+
+- `readData()`: `name[]` checkbox groups crashed; nested names (`a.b`, `a[0].b`) did not nest; empty text was `undefined` instead of `''`; single-selection `<select multiple>` was not an array.
+
 ## 1.8.0 (2026-09-14)
 
 ### Added

@@ -20,6 +20,7 @@ Experienced developers who concluded that large frameworks abstract away too muc
 
 **Documentation**
 - Document using markdown in docs/
+- CHANGELOG.md is minimal: one line per change stating what changed, no reasoning, no history of what it did before. Group under Breaking / Added / Fixed / Changed.
 - Write for a reader who knows the web platform but has never seen this library. State what something is for and when to reach for it, then show it working.
 - JSDoc to explain context and purpose, but do NOT repeat what the code says.
 - Never use em-dashes (—) in prose. Rephrase the sentence instead.

@@ -108,6 +108,12 @@ const result = template({
 
 For value transformations using pipes (like `uppercase`, `currency`), use [compileTemplate](template.md) instead.
 
+### Checking before running
+
+`npx @relax.js/core check` verifies every `{{name}}` and `{{fn|args}}` against the object the
+template is bound with, and reports a misspelled name with file and line. No annotation needed;
+the type comes from the bind call. See [Checking templates](checking.md).
+
 ## API
 
 ### `html` (tagged template literal)

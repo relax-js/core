@@ -11,6 +11,33 @@ Do not carry syntax across from one to the other.
 
 Both update in place, and both fail quietly.
 
+## Check before you run
+
+Type the call, `compileTemplate<ViewModel, Handlers>(\`...\`)`, with the view model `render()`
+takes and the object holding the handlers. Then run
+
+```
+npx @relax.js/core check
+```
+
+after editing a template. It resolves every `{{path}}`, `if`/`unless`, `loop` alias,
+`fn(args)` call, `r-<event>` name and pipe against those types, and every `{{name}}` in an
+`html\`...\`` literal against the object it is bound with, and prints
+`file:line:col - error: ...` lines like `tsc`, exit code 1 on findings. The summary counts the
+templates it could not check: no type argument, a `compileTemplate` string that is not a literal,
+or an `html` bind function never called in its file. Read it; silence with skipped templates is
+not green.
+
+If the project has no such test yet, add one so `npm test` runs the check too:
+
+```typescript
+import { checkProject, formatDiagnostic } from '@relax.js/core/check';
+
+it('every_template_resolves_against_its_view_model', () => {
+    expect(checkProject('tsconfig.json').diagnostics.map(formatDiagnostic)).toEqual([]);
+});
+```
+
 ## Nothing throws, so read the errors
 
 A mistyped path, a function that was never passed, an unknown event name, a render that changed
@@ -62,6 +89,7 @@ so evaluate the tagged literal again per instance, or use `compileTemplate` with
 
 - `@relax.js/core/docs/html/template.md` for `compileTemplate`, loops, conditionals, attribute
   and boolean binding, and the full event syntax
+- `@relax.js/core/docs/html/checking.md` for what `check` verifies and what it skips
 - `@relax.js/core/docs/html/html.md` for the tagged literal
 - `@relax.js/core/docs/Pipes.md` for the built-in pipes and custom registries
 - `@relax.js/core/docs/html/TableRenderer.md` for data tables

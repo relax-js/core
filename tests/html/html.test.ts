@@ -98,6 +98,25 @@ describe('html template engine', () => {
             });
             expect(result.fragment.querySelector('div')?.textContent).toBe('Hello, John!');
         });
+
+        it('a_function_receives_every_comma_separated_argument', () => {
+            const template = html`<div>{{format|name,title}}</div>`;
+            const result = template({
+                name: 'John',
+                title: 'Developer',
+                format(name: string, title: string) { return `${name} - ${title}`; }
+            });
+            expect(result.fragment.querySelector('div')?.textContent).toBe('John - Developer');
+        });
+
+        it('arguments_may_be_dotted_paths_and_literals', () => {
+            const template = html`<div>{{format|user.name, 'x', 2}}</div>`;
+            const result = template({
+                user: { name: 'John' },
+                format(name: string, tag: string, n: number) { return `${name}${tag}${n}`; }
+            });
+            expect(result.fragment.querySelector('div')?.textContent).toBe('Johnx2');
+        });
     });
 
     describe('update functionality', () => {

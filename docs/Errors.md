@@ -72,6 +72,8 @@ If the handler does not call `suppress()`, the `RelaxError` is thrown after the 
 
 An unresolved template expression is reported but not thrown, because rendering has to continue: one mistyped path should not blank out the rest of the page. To make it a hard failure, throw from the handler, or compile the template with `{ strict: true }`.
 
+Most of these never need to reach the browser. Give `compileTemplate` its `<T, F>` type arguments and run `npx @relax.js/core check` to get them as `tsc`-style lines before the app runs. See [Checking templates](html/checking.md).
+
 ```typescript
 onError((error) => {
     throw error;

@@ -169,7 +169,7 @@ class MyComponent extends HTMLElement {
 
 `FindForm` searches:
 1. Parent element (if it's a form)
-2. Direct children
+2. Descendants, so a form inside the wrapper `compileTemplate` produces is found
 
 ## Built-in Validators
 

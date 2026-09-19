@@ -9,6 +9,7 @@ This module provides templating utilities for rendering dynamic HTML content.
 | [html](html.md) | Tagged template literal with update support | Single-use templates with in-place updates |
 | [compileTemplate](template.md) | Full-featured template compiler | Reusable templates with loops, conditionals, pipes, event handling |
 | [Pipes](../Pipes.md) | Value transformation functions | Format dates, currencies, text in templates |
+| [check](checking.md) | Static check of `compileTemplate` expressions against `<T, F>` | Catch a misspelled path or handler in CI instead of in the browser |
 | [TableRenderer](TableRenderer.md) | Table row renderer for Web Components | Data tables with row updates and button handlers |
 
 ## Quick Comparison
@@ -56,3 +57,4 @@ The choice is how much the markup itself has to express.
 - **Need loops/conditionals?** → Use `compileTemplate`
 - **Need loops together with event handlers?** → Use `compileTemplate` with `r-<event>` attributes
 - **Building a data table?** → Use `TableRenderer`
+- **Want template mistakes caught before the app runs?** → Use `compileTemplate<T, F>` and [`npx @relax.js/core check`](checking.md)

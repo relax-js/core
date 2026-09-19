@@ -246,7 +246,8 @@ export class FormValidator {
 
     /**
      * Finds a form element relative to the given element.
-     * Searches parent first, then direct children.
+     * Searches the parent first, then descendants, so a form that arrived
+     * inside the wrapper `compileTemplate` produces is still found.
      *
      * @param element - The element to search from
      * @returns The found form element
@@ -263,18 +264,15 @@ export class FormValidator {
     public static FindForm(element: HTMLElement): HTMLFormElement {
         if (element.parentElement?.tagName == 'FORM') {
             return <HTMLFormElement>element.parentElement;
-        } else {
-            for (let i = 0; i < element.children.length; i++) {
-                const child = element.children[i];
-                if (child.tagName == 'FORM') {
-                    return <HTMLFormElement>child;
-                }
-            }
+        }
+
+        const descendant = element.querySelector('form');
+        if (descendant) {
+            return descendant;
         }
 
         throw new Error(
-            'Parent or a direct child must be a FORM for class ' +
-                element.constructor.name
+            'Parent or a descendant must be a FORM for class ' + element.constructor.name
         );
     }
 }

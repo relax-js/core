@@ -101,17 +101,59 @@ function initAgents(args, options = {}) {
     return { installedVersion, written, current, behind };
 }
 
-module.exports = { initAgents, readStamp };
+/**
+ * Runs the static template checker over the project's tsconfig and prints the
+ * findings in tsc's line format. Exit code 1 when anything was found.
+ */
+async function check(args, options = {}) {
+    const log = options.log ?? console.log;
+    const projectFlag = args.indexOf('--project');
+    const tsconfig = path.resolve(
+        options.project ?? process.cwd(),
+        projectFlag !== -1 && args[projectFlag + 1] ? args[projectFlag + 1] : 'tsconfig.json',
+    );
+
+    let checker;
+    try {
+        checker = await import(options.checkerModule ?? '../dist/check/index.mjs');
+    } catch (error) {
+        log(`The checker needs the typescript package: npm install -D typescript (${error.message})`);
+        return 1;
+    }
+
+    const result = checker.checkProject(tsconfig);
+    for (const diagnostic of result.diagnostics) log(checker.formatDiagnostic(diagnostic));
+
+    const byReason = ['no type argument', 'not a literal', 'no bind call']
+        .map(reason => [result.skipped.filter(s => s.reason === reason).length, reason])
+        .filter(([count]) => count > 0)
+        .map(([count, reason]) => `${count} ${reason}`);
+    const skipped = result.skipped.length
+        ? `, ${result.skipped.length} skipped (${byReason.join(', ')})`
+        : '';
+    log(`${result.diagnostics.length ? '\n' : ''}${result.templates} templates checked${skipped}`);
+
+    return result.diagnostics.length ? 1 : 0;
+}
+
+module.exports = { initAgents, readStamp, check };
 
 if (require.main === module) {
     const [command, ...args] = process.argv.slice(2);
 
     if (command === 'init-agents') {
         initAgents(args);
+    } else if (command === 'check') {
+        check(args).then(code => {
+            process.exitCode = code;
+        });
     } else {
-        console.log('Usage: npx @relax.js/core init-agents [--force]');
-        console.log('  Copies the Relaxjs agent skills into .claude/skills of this project.');
-        console.log('  Run it again after upgrading to see which copies are behind.');
+        console.log('Usage: npx @relax.js/core <command>');
+        console.log('  init-agents [--force]');
+        console.log('    Copies the Relaxjs agent skills into .claude/skills of this project.');
+        console.log('    Run it again after upgrading to see which copies are behind.');
+        console.log('  check [--project <tsconfig.json>]');
+        console.log('    Checks every compileTemplate<T, F>(`...`) template against its types.');
         process.exitCode = command ? 1 : 0;
     }
 }

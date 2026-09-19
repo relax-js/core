@@ -22,6 +22,16 @@ left alone unless you pass `--force`.
 | `relaxjs-testing` | `mount()`, `flush()`, `captureRelaxErrors()`, `mountRouting()`, `fakeServer()`, debug traces |
 | `relaxjs-setup` | Startup order, i18n loading, build configuration |
 
+Templates are the part an agent cannot verify by reading. Give `compileTemplate` its `<T, F>`
+type arguments and have the agent run
+
+```
+npx @relax.js/core check
+```
+
+after editing one. Findings come out as `file:line:col - error: ...` lines, the way `tsc` reports.
+See [Checking templates](html/checking.md).
+
 If your agent tool has no skill support, point its instruction file at
 `node_modules/@relax.js/core/skills/relaxjs/SKILL.md` and let it follow the links from there.
 

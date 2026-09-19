@@ -19,6 +19,7 @@ const entryPoints = {
     'di/index': 'src/di/index.ts',
     'collections/index': 'src/collections/Index.ts',
     'testing/index': 'src/testing/index.ts',
+    'check/index': 'src/check/index.ts',
 };
 
 esbuild
@@ -30,6 +31,7 @@ esbuild
         splitting: true,
         chunkNames: 'chunks/[name]-[hash]',
         bundle: true,
+        external: ['typescript'],
         minify: true,
         target: 'es2022',
         sourcemap: true,

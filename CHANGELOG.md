@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.1.0 (2026-09-19)
+
+### Added
+
+- `npx @relax.js/core check`: verifies every `compileTemplate<T, F>(\`...\`)` template against its type arguments, and every `html\`...\`` literal against the object it is bound with, using the TypeScript compiler. Prints `tsc`-style `file:line:col - error:` lines. Also available as `checkProject()` / `checkProgram()` from `@relax.js/core/check`.
+- `compileTemplate<T, F>` takes a second type parameter for the functions context; `render(ctx: T, fns?: F | null)`.
+- `typescript` is an optional peer dependency, used only by `check`.
+
+### Fixed
+
+- `html`: `{{fn|a, b}}` with more than one argument, or with a dotted path or literal argument, rendered as literal text.
+
+### Changed
+
+- `FormValidator.FindForm()` searches descendants, so it finds the form inside the wrapper `compileTemplate` appends.
+- `CompiledTemplate.content` is typed `HTMLElement`; it was never a `DocumentFragment`.
+
 ## 2.0.0 (2026-09-19)
 
 ### Breaking

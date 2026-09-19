@@ -43,7 +43,9 @@ try {
 Errors are suppressed while the capture is installed, so rendering continues and the assertion is
 reached. `restore()` puts the previous handler back, so call it in a `finally` or an `afterEach`.
 Assert on `captured.messages()` even in tests that are about something else: it is what turns a
-typo into a failure instead of a mystery.
+typo into a failure instead of a mystery. A typo in a typed template is cheaper still:
+`npx @relax.js/core check` reports it with a file and line, no test needed (see the
+**relaxjs-templates** skill).
 
 ## Fake the server, not the component
 

@@ -47,7 +47,7 @@ npx @relax.js/core init-agents
 
 That writes a skill per area into `.claude/skills/`: the core model, then templates, forms, routing, services, testing and setup. Each one carries what an agent gets wrong from habit and links into the documentation for the rest. Tools without skill support can be pointed straight at `node_modules/@relax.js/core/skills/relaxjs/SKILL.md`.
 
-Agents cannot run your app, so they verify through tests. `@relax.js/core/testing` gives them `mount()`, `flush()` and `captureRelaxErrors()`, which turns a template typo into a failing assertion instead of a blank element, plus `fakeServer()` for the requests a component makes and `mountRouting()` to navigate to a page the way the app does and get the rendered component back.
+Agents cannot run your app, so they verify statically and through tests. `npx @relax.js/core check` resolves every expression in a typed `compileTemplate<T, F>` template against those types and reports mistakes as `tsc`-style lines. `@relax.js/core/testing` gives them `mount()`, `flush()` and `captureRelaxErrors()`, which turns a template typo into a failing assertion instead of a blank element, plus `fakeServer()` for the requests a component makes and `mountRouting()` to navigate to a page the way the app does and get the rendered component back.
 
 > [Working in a Relaxjs project](docs/AGENTS.md)
 
@@ -133,6 +133,7 @@ It suits a small-to-medium SPA where you want direct control over the DOM and ad
 - [Form Utilities](docs/forms/forms.md) - Validation, reading/writing, custom form components
 - [Routing](docs/routing/Routing.md) - Routes, guards, layouts, navigation
 - [HTML Templates](docs/html/html.md) - Tagged templates with data binding
+- [Checking templates](docs/html/checking.md) - `npx @relax.js/core check` verifies template expressions against their types before the app runs
 - [HTTP & WebSocket](docs/http/HttpClient.md) - REST calls, WebSocket, SSE
 - [Dependency Injection](docs/DependencyInjection.md)
 - [i18n](docs/i18n/i18n.md) - Translations, ICU format, locale switching

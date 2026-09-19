@@ -61,6 +61,13 @@
 
 import { PipeRegistry, defaultPipes, applyPipes } from '../pipes';
 import { reportError } from '../errors';
+import {
+    INTERPOLATION,
+    ParsedExpression,
+    parseExpression,
+    parseLoop,
+    structuralAttributes,
+} from './expressions';
 
 /**
  * Configuration options for the template engine.
@@ -126,32 +133,6 @@ export type Getter = (ctx: Context, path: Path, debugInfo?: string) => TemplateV
 export type Setter = (ctx: Context, fns?: FunctionsContext) => void;
 export type Patcher = (node: Node, get: Getter, config: EngineConfig) => Setter | void;
 export type ExpressionFn = (ctx: Context, fns?: FunctionsContext) => TemplateValue;
-
-interface ParsedExpression {
-    type: 'path' | 'function';
-    path?: string;
-    fnName?: string;
-    fnArgs?: string[];
-    pipes: string[];
-}
-
-function parseExpression(expr: string): ParsedExpression {
-    const pipesSplit = expr.split('|').map(s => s.trim());
-    const mainExpr = pipesSplit[0];
-    const pipes = pipesSplit.slice(1);
-
-    // Check if it's a function call: functionName(args)
-    const fnMatch = mainExpr.match(/^(\w+)\s*\((.*)\)$/);
-    if (fnMatch) {
-        const [, fnName, argsStr] = fnMatch;
-        const fnArgs = argsStr
-            ? argsStr.split(',').map(a => a.trim())
-            : [];
-        return { type: 'function', fnName, fnArgs, pipes };
-    }
-
-    return { type: 'path', path: mainExpr, pipes };
-}
 
 // Resolve a path with support for array indexing: items[0].name
 function resolvePath(ctx: ContextValue, path: string): ContextValue {
@@ -296,7 +277,7 @@ function splitInterpolation(raw: string): InterpolationPart[] {
     let parts = expressionCache.get(raw);
     if (!parts) {
         parts = raw
-            .split(/(\{\{.*?\}\})/)
+            .split(INTERPOLATION)
             .filter(part => part !== '')
             .map(part => part.startsWith('{{') && part.endsWith('}}')
                 ? { parsed: parseExpression(part.slice(2, -2).trim()), literal: '' }
@@ -492,8 +473,6 @@ function eventPatcher(node: Node, _get: Getter, config: EngineConfig): Setter | 
     }
 }
 
-const structuralAttributes = ['loop', 'if', 'unless'];
-
 /** One rendered copy of a structural element, kept so the next render can re-use it. */
 interface Instance {
     element: Element;
@@ -540,12 +519,12 @@ function structuralPatcher(node: Node, get: Getter, config: EngineConfig): Sette
     let source = '';
 
     if (loopDef !== null) {
-        const match = loopDef.match(/(\w+)\s+in\s+(.+)/);
-        if (!match) {
+        const loop = parseLoop(loopDef);
+        if (!loop) {
             handleError(config, `Invalid loop syntax: "${loopDef}"`, `Element: <${tag}>`, loopDef);
             return;
         }
-        [, alias, source] = match;
+        ({ alias, source } = loop);
     }
 
     const template = element.cloneNode(true) as Element;
@@ -709,9 +688,12 @@ function compileDOM(
  * Result of compiling a template.
  * Contains the DOM content and a render function for updating it with data.
  */
-export interface CompiledTemplate<T extends object = Context> {
-    /** The compiled DOM element containing the template structure. */
-    content: DocumentFragment | HTMLElement;
+export interface CompiledTemplate<T extends object = Context, F extends object = FunctionsContext> {
+    /**
+     * A `<div>` wrapping the template markup. Append it as-is; top-level `if`
+     * and `loop` elements need it as their parent, so it is never unwrapped.
+     */
+    content: HTMLElement;
     /**
      * Updates the DOM with the provided data context.
      *
@@ -725,7 +707,7 @@ export interface CompiledTemplate<T extends object = Context> {
      * one from the previous render, so a data-only update leaves handlers wired.
      * Pass `null` to deliberately drop it.
      */
-    render: (ctx: T, fns?: FunctionsContext | null) => void;
+    render: (ctx: T, fns?: F | null) => void;
 }
 
 /**
@@ -747,6 +729,11 @@ export interface CompiledTemplate<T extends object = Context> {
  * @param templateStr - HTML template string with mustache expressions
  * @param config - Optional engine configuration
  * @returns Compiled template with content and render function
+ *
+ * @typeParam T - The view model `render()` takes. Give it, and `npx @relax.js/core check`
+ * verifies every path in the template against it.
+ * @typeParam F - The functions context; with it, the checker also verifies `fn()` calls
+ * and `r-<event>` handlers.
  *
  * @example
  * // Simple data binding
@@ -786,10 +773,10 @@ export interface CompiledTemplate<T extends object = Context> {
  * );
  * document.body.appendChild(tpl.content);
  */
-export function compileTemplate<T extends object = Context>(
+export function compileTemplate<T extends object = Context, F extends object = FunctionsContext>(
     templateStr: string,
     config: EngineConfig = { strict: false },
-): CompiledTemplate<T> {
+): CompiledTemplate<T, F> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(`<template><div>${templateStr}</div></template>`, 'text/html');
     const content = doc.querySelector('template')!.content.firstElementChild as HTMLElement;
@@ -797,8 +784,8 @@ export function compileTemplate<T extends object = Context>(
 
     return {
         content,
-        render(ctx: T, fns?: FunctionsContext | null) {
-            const rendered = render(ctx as unknown as Context, fns);
+        render(ctx: T, fns?: F | null) {
+            const rendered = render(ctx as unknown as Context, fns as unknown as FunctionsContext | null);
             if (!rendered) {
                 handleError(
                     config,

@@ -4,10 +4,8 @@
  * Creates templates that can be re-rendered with new data without recreating DOM nodes.
  */
 
-import { defaultPipes } from "../pipes";
 import { reportError } from "../errors";
-
-const pipes = defaultPipes;
+import { HTML_MUSTACHE } from "./expressions";
 
 function reportUnresolved(message: string, context: string, expression: string): void {
   const formattedMessage = `[template error] ${message} (at ${context})`;
@@ -280,7 +278,7 @@ function parseTemplate(
   template: string,
   substitutions: any[]
 ): TemplateCallback | null {
-  const regex = /€€(\d+)€€|{{\s*([^|]+?)(?:\|([\w|]+))?\s*}}/g;
+  const regex = new RegExp(`€€(\\d+)€€|${HTML_MUSTACHE.source}`, 'g');
   let lastIndex = 0;
   let match;
 
@@ -322,12 +320,9 @@ function parseTemplate(
         }
       }
     } else if (match[2]) {
-      // {{mustache|pipes}} case
+      // {{name}} or {{name|args}} case
       const mustacheName = match[2].trim();
       const argsStr = match[3] ? match[3].trim() : null;
-      const matchingPipes = match[4]
-        ? match[4].split("|").map((pipe) => pipe.trim())
-        : [];
 
       textBindings.push((instance) => {
         if (!(mustacheName in Object(instance ?? {}))) {
@@ -349,9 +344,6 @@ function parseTemplate(
           }
         }
 
-        matchingPipes.forEach((pipe) => {
-          value = pipes.get(pipe)(value);
-        });
         return value;
       });
     }

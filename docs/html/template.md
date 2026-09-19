@@ -13,6 +13,7 @@ A full-featured template engine for web components. Compiles HTML templates with
 - **Loop Rendering** - `loop="item in items"` directive
 - **Event Handling** - `r-<event>="handler(args)"` wires DOM events to functions
 - **Type-Safe** - Full TypeScript support
+- **Checkable** - `npx @relax.js/core check` verifies expressions against `<T, F>` before the app runs, see [Checking templates](checking.md)
 - **Performance Optimized** - Expression caching and memoized re-renders
 
 ## Basic Usage
@@ -542,27 +543,39 @@ const { content, render } = compileTemplate(template, config);
 Compiles an HTML template string into a render function.
 
 ```typescript
-function compileTemplate(
+function compileTemplate<T extends object = Context, F extends object = FunctionsContext>(
     templateStr: string,
     config?: EngineConfig
-): CompiledTemplate;
+): CompiledTemplate<T, F>;
 
-interface CompiledTemplate {
-    content: DocumentFragment | HTMLElement;
-    render: (ctx: Context, fns?: FunctionsContext | null) => void;
+interface CompiledTemplate<T, F> {
+    content: HTMLElement;
+    render: (ctx: T, fns?: F | null) => void;
 }
+```
+
+`content` is a `<div>` wrapping the template markup. Append it as-is: top-level `if` and `loop` elements need it as their parent, so it is never unwrapped. `FormValidator.FindForm(this)` looks through descendants and finds a form inside it.
+
+`T` is the view model `render()` takes and `F` the functions context. Both may be left out.
+Give them, and [`npx @relax.js/core check`](checking.md) verifies every path, handler and pipe
+in the template against them before the app runs:
+
+```typescript
+interface ProjectView { project: { id: string; name: string } }
+interface ProjectHandlers { open: (id: string) => void }
+
+const tpl = compileTemplate<ProjectView, ProjectHandlers>(`
+    <a r-click="open(project.id)">{{project.name}}</a>
+`);
+tpl.render({ project }, { open: (id) => router.go(id) });
 ```
 
 ### Context
 
-Data object passed to `render()`:
+Data object passed to `render()` when `T` is not given: any object of primitives, arrays,
+nested objects and functions.
 
 ```typescript
-interface Context {
-    [key: string]: ContextValue;
-}
-
-// Example
 render({
     user: { name: 'John', age: 30 },
     items: ['a', 'b', 'c'],
@@ -570,22 +583,9 @@ render({
 });
 ```
 
-`Context` is internal and not exported, so declare view models passed to `render()` as
-`type` aliases rather than `interface` declarations. TypeScript gives a type alias an
-implicit index signature but withholds it from an interface, so an interface-typed value
-fails with "Index signature for type 'string' is missing". Nested values follow the same
-rule.
-
-```typescript
-type ProjectDetail = { id: string; name: string };
-
-const project: ProjectDetail = await client.getProject(id);
-render({ project });
-```
-
 ### FunctionsContext
 
-Functions object passed as second argument to `render()`:
+Functions object passed as second argument to `render()` when `F` is not given:
 
 ```typescript
 interface FunctionsContext {

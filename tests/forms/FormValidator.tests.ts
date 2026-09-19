@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { FormValidator, ValidatorOptions } from '../../src/forms/FormValidator';
 import { onError, RelaxError } from '../../src/errors';
+import { compileTemplate } from '../../src/html/template';
 
 describe('FormValidator', () => {
   let form: HTMLFormElement;
@@ -185,18 +186,29 @@ describe('FormValidator', () => {
 
       expect(foundForm).toBe(innerForm);
     });
-    
+
+    it('finds_the_form_inside_the_wrapper_compileTemplate_appends_to_a_component', () => {
+      const host = document.createElement('div');
+      const tpl = compileTemplate('<form class="form"><input name="a"></form>');
+      host.appendChild(tpl.content);
+      document.body.appendChild(host);
+
+      const foundForm = FormValidator.FindForm(host);
+
+      expect(foundForm).toBe(host.querySelector('form'));
+    });
+
     it('should throw error if no form is found', () => {
       const div = document.createElement('div');
       document.body.appendChild(div);
 
-      expect(() => FormValidator.FindForm(div)).toThrow(/Parent or a direct child must be a FORM/);
+      expect(() => FormValidator.FindForm(div)).toThrow(/Parent or a descendant must be a FORM/);
     });
 
     it('should throw error for detached element with no parent', () => {
       const detached = document.createElement('div');
 
-      expect(() => FormValidator.FindForm(detached)).toThrow(/Parent or a direct child must be a FORM/);
+      expect(() => FormValidator.FindForm(detached)).toThrow(/Parent or a descendant must be a FORM/);
     });
   });
 

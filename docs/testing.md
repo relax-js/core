@@ -57,6 +57,8 @@ try {
 
 This is what turns a template typo into a test failure. `{{user.naem}}` renders an empty string and reports the problem; without capturing it, the test sees an empty element and no reason for it.
 
+A typo like that does not need a test to be found. With `compileTemplate<T, F>` type arguments in place, [`npx @relax.js/core check`](html/checking.md) reports it with a file and line before anything renders. Keep `captureRelaxErrors` for the failures that depend on runtime data.
+
 The same channel carries the failures that produce no DOM at all: a `render()` given the object it was given last time, an `html` template bound twice, a navigation waiting for a route target that never connects, a re-render replacing the field the user has focus in. Asserting `captured.messages()` is empty in tests that are about something else is what catches those.
 
 Errors are suppressed while the capture is installed, so rendering continues and the assertion is reached. `restore()` puts the previously registered handler back, so call it in a `finally` or an `afterEach`.

@@ -239,7 +239,7 @@ try {
 
 ## Testing
 
-Replace the global fetch implementation for unit tests:
+`fakeServer()` from `@relax.js/core/testing` answers requests with canned responses and records what was sent, see [Testing](../testing.md#fakeserver). Underneath it uses `setFetch()`, which you can also call directly:
 
 ```typescript
 import { setFetch, get, configure } from '@relax.js/core/http';

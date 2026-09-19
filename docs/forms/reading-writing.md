@@ -108,9 +108,27 @@ const data = readData(form);
 // }
 ```
 
+An empty text field reads as `''`. An empty number, boolean or date field reads as `undefined`, since there is no value to convert.
+
+### Nested Names
+
+Field names use the same notation `setFormData` reads, so a form filled from an object reads back into the same shape. `product.name` becomes a property of a nested object, `variants[0].size` an element of an array, and `hobbies[]` collects the checked boxes of that name into an array (empty when none is checked). A `<select multiple>` is always an array, also with one selection.
+
+```html
+<input name="product.name" value="Headphones" />
+<input name="tags[]" type="checkbox" value="audio" checked />
+<input name="tags[]" type="checkbox" value="wireless" />
+<input name="variants[0].size" value="M" />
+```
+
+```typescript
+readData(form);
+// Returns: { product: { name: 'Headphones' }, tags: ['audio'], variants: [{ size: 'M' }] }
+```
+
 ### Checkbox Handling
 
-Unchecked checkboxes are included as `false` in the result. Checked checkboxes with no explicit `value` attribute (which submit as `'on'` in FormData) are correctly converted to `true`.
+Unchecked checkboxes are included as `false` in the result. Checked checkboxes with no explicit `value` attribute (which submit as `'on'` in FormData) are correctly converted to `true`. Checkboxes in a `name[]` group contribute their `value` instead, see above.
 
 ```html
 <input name="active" type="checkbox" checked />

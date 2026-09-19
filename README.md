@@ -10,22 +10,9 @@ Web Component library with routing, forms, DI, templating, and i18n. No virtual 
 - No build step required, no compiler, no CLI
 - Standard DOM, standard async/await, HTML templates with a small expression syntax
 
-## Why Relaxjs?
+You always know *when* something ran, *why* it ran, and *what* triggered it.
 
-Modern frameworks solve problems you might not have. Relaxjs takes the opposite approach:
-
-| Framework Approach | Relaxjs Approach |
-|-------------------|------------------|
-| Virtual DOM diffing | Direct DOM manipulation |
-| Reactive state management | Explicit updates |
-| Compiled template language | HTML plus `{{expr}}`, no compiler |
-| Framework-specific lifecycle | Native Web Component lifecycle |
-| Magic re-renders | You control what updates |
-| Custom rendering pipeline | Native async/await everywhere |
-
-> [Read the detailed comparison](docs/WhyRelaxjs.md)
-
-**The result:** You always know *when* something ran, *why* it ran, and *what* triggered it.
+> [Why Relaxjs?](docs/WhyRelaxjs.md) compares this with the framework approach, point by point.
 
 ## What Relaxjs Adds
 
@@ -40,13 +27,15 @@ Web Components give you encapsulation and lifecycle hooks. Relaxjs fills the gap
 | Manual service wiring | Decorator-based dependency injection |
 | Raw fetch boilerplate | Simple HTTP client for backend calls |
 
-You write less boilerplate while keeping full control.
-
 ## Installation
 
 ```bash
 npm install @relax.js/core
 ```
+
+Ships as ES modules only. `@relax.js/core` and its sub-paths (`/routing`, `/forms`, `/http`, ...) share one instance of every module, so an `onError()` handler registered through one sees what the others report.
+
+Works in all browsers that support Web Components (Chrome, Firefox, Safari, Edge).
 
 ## Coding Agents
 
@@ -58,7 +47,7 @@ npx @relax.js/core init-agents
 
 That writes a skill per area into `.claude/skills/`: the core model, then templates, forms, routing, services, testing and setup. Each one carries what an agent gets wrong from habit and links into the documentation for the rest. Tools without skill support can be pointed straight at `node_modules/@relax.js/core/skills/relaxjs/SKILL.md`.
 
-Agents cannot run your app, so they verify through tests. `@relax.js/core/testing` gives them `mount()`, `flush()` and `captureRelaxErrors()`, which turns a template typo into a failing assertion instead of a blank element.
+Agents cannot run your app, so they verify through tests. `@relax.js/core/testing` gives them `mount()`, `flush()` and `captureRelaxErrors()`, which turns a template typo into a failing assertion instead of a blank element, plus `fakeServer()` for the requests a component makes and `mountRouting()` to navigate to a page the way the app does and get the rendered component back.
 
 > [Working in a Relaxjs project](docs/AGENTS.md)
 
@@ -124,33 +113,9 @@ const validator = new FormValidator(form, {
 
 > [Validation docs](docs/forms/validation.md)
 
-## What's Included
-
-| Feature | Description |
-|---------|-------------|
-| **Form Utilities** | Read/write forms, type conversion, validation |
-| **Routing** | Named routes, typed parameters, guards, layouts, multiple targets |
-| **HTML Templates** | `html` tagged templates with data binding and in-place updates |
-| **HTTP Client** | Type-safe `get`/`post`/`put`/`del` with automatic JWT |
-| **WebSocket** | Auto-reconnect, message queuing, typed messages |
-| **SSE** | Server-Sent Events dispatched as DOM events |
-| **Dependency Injection** | Decorator-based DI with constructor and property injection |
-| **i18n** | ICU message format, pluralization, locale-aware formatting |
-| **Pipes** | Built-in data transformations for templates |
-
-## Where Relaxjs Fits
-
-Relaxjs is a good choice when:
-
-- You're building a **small-to-medium SPA** where you want direct control over the DOM
-- Your team prefers **vanilla Web Components** over framework abstractions
-- You want **gradual adoption** - use only the parts you need, no all-or-nothing buy-in
-- **Bundle size and simplicity** matter more than ecosystem breadth
-- You want to **understand what your code does** - no hidden re-renders, no magic proxies, no compiler transforms
-
 ## Where Relaxjs Doesn't Fit
 
-Relaxjs is not the right tool for everything:
+It suits a small-to-medium SPA where you want direct control over the DOM and adopt only the parts you need. It is not the right tool for everything:
 
 - **Large-scale apps with complex state** - Relaxjs has no reactive state management, no global store, no computed properties. If your UI has dozens of interdependent data flows, you'll be writing a lot of manual update logic.
 - **Server-side rendering / static site generation** - Relaxjs is client-only. If you need SEO, fast first-paint from the server, or pre-rendered pages, look at Next.js, Nuxt, or SvelteKit.
@@ -158,36 +123,10 @@ Relaxjs is not the right tool for everything:
 - **Rich ecosystem needs** - There's no component marketplace, no DevTools extension, no community middleware. You build what you need or use vanilla JS libraries.
 - **Mobile / native targets** - No React Native equivalent, no Ionic integration. Relaxjs is for the browser.
 
-## How It Compares
-
-| | Relaxjs | React | Angular | Vue | Svelte |
-|---|---|---|---|---|---|
-| **Approach** | Web Components | Virtual DOM | Full framework | Virtual DOM | Compiler |
-| **Learning curve** | Low (vanilla TS) | Medium | High | Medium | Low-Medium |
-| **State management** | Explicit DOM updates | Hooks / Redux / Zustand | RxJS / Signals | Reactive refs | Stores / runes |
-| **Routing** | Built-in (simple) | react-router (separate) | Built-in (full) | vue-router (separate) | SvelteKit |
-| **Forms** | Built-in (HTML5 native) | Controlled / uncontrolled | Reactive forms | v-model | bind: |
-| **SSR** | No | Yes | Yes | Yes | Yes |
-| **Ecosystem** | Small | Massive | Large | Large | Growing |
-| **DI** | Built-in | None (Context API) | Built-in | Provide / Inject | None |
-| **i18n** | Built-in (ICU) | i18next etc. | Built-in | vue-i18n | i18next etc. |
-| **DevTools** | Browser DevTools | React DevTools | Angular DevTools | Vue DevTools | Svelte DevTools |
-| **Community size** | Small | Very large | Large | Large | Medium |
-
-## Philosophy
-
-This isn't a framework - it's a library. Use what you need:
-
-- Need just form handling? Import `setFormData` and `readData`.
-- Need routing? Add `defineRoutes` and `r-route-target`.
-- Need everything? It's all there.
-
-No buy-in required. No migration path to worry about. 
-
 ## Documentation
 
 - [Why Relaxjs?](docs/WhyRelaxjs.md) - Detailed comparison with frameworks
-- [Getting Started](docs/GettingStarted.md) - Progressive adoption guide (7 levels)
+- [Getting Started](docs/GettingStarted.md) - Progressive adoption guide
 - [Working in a Relaxjs project](docs/AGENTS.md) - Agent skills, what each covers, and how to install them
 - [Architecture](docs/Architecture.md)
 - [Building a Form Page](docs/forms/form-page.md) - Template, load, validate and save in one component
@@ -198,12 +137,8 @@ No buy-in required. No migration path to worry about.
 - [Dependency Injection](docs/DependencyInjection.md)
 - [i18n](docs/i18n/i18n.md) - Translations, ICU format, locale switching
 - [Pipes](docs/Pipes.md) - Data transformations for templates
-- [Testing](docs/testing.md) - Mounting components and asserting on reported errors
+- [Testing](docs/testing.md) - Mounting components, faking the server, navigating to pages, asserting on reported errors
 - [Utilities](docs/utilities.md) - Sequential IDs, LinkedList, helpers
-
-## Browser Support
-
-Works in all browsers that support Web Components (Chrome, Firefox, Safari, Edge).
 
 ## License
 

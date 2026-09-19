@@ -1,3 +1,5 @@
+import { getByFieldPath } from './fieldPath';
+
 /**
  * Sets form field values from a data object using the name attribute.
  * Supports dot notation for accessing nested properties and array handling.
@@ -115,7 +117,7 @@ export function setFormData(form: HTMLFormElement, data: object, context?: objec
       // Handle simple array notation (e.g., hobbies[])
       if (name.endsWith('[]')) {
         const arrayName = name.slice(0, -2);
-        const arrayValue = getValueByComplexPath(data, arrayName);
+        const arrayValue = getByFieldPath(data, arrayName);
 
         if (Array.isArray(arrayValue)) {
           const el = element as Record<string, any>;
@@ -141,61 +143,13 @@ export function setFormData(form: HTMLFormElement, data: object, context?: objec
       }
 
       // Handle complex paths with array indexers and dot notation
-      const value = getValueByComplexPath(data, name);
+      const value = getByFieldPath(data, name);
       if (value === undefined || value === null) return;
 
       setElementValue(element, value);
     });
   }
   
-  function getValueByComplexPath(obj: object, path: string): any {
-    // Handle array indexers like users[0].name
-    const segments = [];
-    let currentSegment = '';
-    let inBrackets = false;
-    
-    for (let i = 0; i < path.length; i++) {
-      const char = path[i];
-      
-      if (char === '[' && !inBrackets) {
-        if (currentSegment) {
-          segments.push(currentSegment);
-          currentSegment = '';
-        }
-        inBrackets = true;
-        currentSegment += char;
-      } else if (char === ']' && inBrackets) {
-        currentSegment += char;
-        segments.push(currentSegment);
-        currentSegment = '';
-        inBrackets = false;
-      } else if (char === '.' && !inBrackets) {
-        if (currentSegment) {
-          segments.push(currentSegment);
-          currentSegment = '';
-        }
-      } else {
-        currentSegment += char;
-      }
-    }
-    
-    if (currentSegment) {
-      segments.push(currentSegment);
-    }
-    
-    return segments.reduce<any>((result, segment) => {
-      if (!result || typeof result !== 'object') return undefined;
-
-      // Handle array indexer segments like [0]
-      if (segment.startsWith('[') && segment.endsWith(']')) {
-        const index = segment.slice(1, -1);
-        return result[index];
-      }
-
-      return result[segment];
-    }, obj);
-  }
-
   function setElementValue(element: Element, value: any): void {
     const el = element as Record<string, any>;
     const type = el.type || element.getAttribute('type') || '';

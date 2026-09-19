@@ -33,7 +33,7 @@ assertions.
 - **relaxjs-forms**: `FormValidator`, `readData`/`setFormData`, form-associated custom elements
 - **relaxjs-routing**: routes, `<r-route-target>`, route parameters, targets that never render
 - **relaxjs-services**: dependency injection and the HTTP, WebSocket and SSE clients
-- **relaxjs-testing**: `mount()`, `flush()`, `captureRelaxErrors()`, and the debug traces
+- **relaxjs-testing**: `mount()`, `flush()`, `captureRelaxErrors()`, `mountRouting()`, `fakeServer()`, and the debug traces
 - **relaxjs-setup**: startup order in `main.ts`, i18n loading, build configuration
 
 ## Events

@@ -13,6 +13,7 @@
  */
 
 import { getCurrentLocale } from '../i18n/i18n';
+import { setByFieldPath } from './fieldPath';
 
 /**
  * Maps form field values to a class instance's properties.
@@ -187,8 +188,19 @@ export function getDataConverter(element: HTMLElement): ConverterFunc {
  *     <r-checkbox name="terms" checked />
  * </form>
  * const data = readData(form);
- 1*/
-export function readData<T = Record<string, unknown>>(form: HTMLFormElement): T{
+ *
+ * @example
+ * // Field names use the same notation setFormData() reads, so the shape round-trips
+ * <form>
+ *     <input name="product.name" value="Headphones" />
+ *     <input name="tags[]" type="checkbox" value="audio" checked />
+ *     <input name="tags[]" type="checkbox" value="wireless" />
+ *     <input name="variants[0].size" value="M" />
+ * </form>
+ * readData(form);
+ * // Returns: { product: { name: 'Headphones' }, tags: ['audio'], variants: [{ size: 'M' }] }
+ */
+export function readData<T = Record<string, unknown>>(form: HTMLFormElement): T {
     const data: Record<string, unknown> = {};
     const formData = new FormData(form);
     const seen = new Set<string>();
@@ -198,26 +210,55 @@ export function readData<T = Record<string, unknown>>(form: HTMLFormElement): T{
         seen.add(name);
 
         const values = formData.getAll(name);
-        const element = form.elements.namedItem(name);
-        const converter = element ? getDataConverter(element as HTMLElement) : (v: string) => v;
+        const element = firstNamed(form, name);
+        const isList = name.endsWith('[]') || isMultiSelect(element);
+        const converter = element ? listAwareConverter(element, isList) : (v: string) => v;
+        const converted = values.map((v) => (typeof v === 'string' ? converter(v) : v));
 
-        if (values.length === 1) {
-            const v = values[0];
-            data[name] = typeof v === 'string' ? converter(v) : v;
-        } else {
-            data[name] = values.map(v => typeof v === 'string' ? converter(v) : v);
-        }
+        setByFieldPath(data, fieldPath(name), isList ? converted : converted[0]);
     });
 
     for (let i = 0; i < form.elements.length; i++) {
         const el = form.elements[i] as HTMLInputElement;
         if (el.type === 'checkbox' && el.name && !seen.has(el.name)) {
             seen.add(el.name);
-            data[el.name] = false;
+            setByFieldPath(data, fieldPath(el.name), el.name.endsWith('[]') ? [] : false);
         }
     }
 
     return data as T;
+}
+
+function fieldPath(name: string): string {
+    return name.endsWith('[]') ? name.slice(0, -2) : name;
+}
+
+/**
+ * The element behind a field name. Several fields sharing a name (a checkbox group, radio
+ * buttons) come back as a `RadioNodeList`, and the first of them stands for the group.
+ */
+function firstNamed(form: HTMLFormElement, name: string): HTMLElement | null {
+    const named = form.elements.namedItem(name);
+    if (named instanceof RadioNodeList) {
+        return named[0] as HTMLElement;
+    }
+    return named as HTMLElement | null;
+}
+
+function isMultiSelect(element: HTMLElement | null): boolean {
+    return element instanceof HTMLSelectElement && element.multiple;
+}
+
+/**
+ * Checkboxes in a `name[]` group contribute their `value`, not a boolean, since the list
+ * says which of them are checked. A `data-type` still applies to those values.
+ */
+function listAwareConverter(element: HTMLElement, isList: boolean): ConverterFunc {
+    const isCheckbox = element instanceof HTMLInputElement && element.type === 'checkbox';
+    if (isList && isCheckbox && !element.hasAttribute('data-type')) {
+        return (v) => v;
+    }
+    return getDataConverter(element);
 }
 
 /**
@@ -372,7 +413,7 @@ export function createConverterFromDataType(dataType: DataType): ConverterFunc {
         case 'Date':
             return DateConverter;
         case 'string':
-            return (value) => (!value || value == '' ? undefined : value);
+            return (value) => value;
         default:
             throw new Error(`Unknown data-type "${dataType}".`);
     }
@@ -416,7 +457,7 @@ export function createConverterFromInputType(inputType: InputType): ConverterFun
             };
 
         default:
-            return (value) => (!value || value == '' ? undefined : value);
+            return (value) => value;
     }
 }
 

@@ -185,9 +185,9 @@ describe('FormReader', () => {
             expect(converter('hello')).toBe('hello');
         });
 
-        it('should return undefined for empty string with "string" type', () => {
+        it('empty_value_with_string_type_stays_an_empty_string', () => {
             const converter = createConverterFromDataType('string');
-            expect(converter('')).toBeUndefined();
+            expect(converter('')).toBe('');
         });
 
         it('should throw for unknown data-type', () => {
@@ -264,9 +264,9 @@ describe('FormReader', () => {
             expect(converter('hello')).toBe('hello');
         });
 
-        it('should return undefined for empty text input', () => {
+        it('empty_text_input_stays_an_empty_string', () => {
             const converter = createConverterFromInputType('text');
-            expect(converter('')).toBeUndefined();
+            expect(converter('')).toBe('');
         });
 
         it('should return string for tel input', () => {
@@ -479,6 +479,91 @@ describe('FormReader', () => {
             expect(data.name).toBe('John');
             expect(data.age).toBe(30);
             expect(data.active).toBe(true);
+        });
+
+        it('empty_text_field_reads_as_empty_string_not_undefined', () => {
+            form.innerHTML = `
+                <input name="nickname" value="" />
+                <input name="motto" data-type="string" value="" />
+                <textarea name="bio"></textarea>`;
+
+            const data = readData(form);
+
+            expect(data).toEqual({ nickname: '', motto: '', bio: '' });
+        });
+
+        it('checkboxes_sharing_a_name_with_brackets_read_as_the_checked_values', () => {
+            form.innerHTML = `
+                <input name="hobbies[]" type="checkbox" value="Reading" checked />
+                <input name="hobbies[]" type="checkbox" value="Cycling" />
+                <input name="hobbies[]" type="checkbox" value="Cooking" checked />`;
+
+            const data = readData(form);
+
+            expect(data.hobbies).toEqual(['Reading', 'Cooking']);
+        });
+
+        it('bracket_group_with_one_checked_box_is_still_an_array', () => {
+            form.innerHTML = `
+                <input name="hobbies[]" type="checkbox" value="Reading" checked />
+                <input name="hobbies[]" type="checkbox" value="Cycling" />`;
+
+            const data = readData(form);
+
+            expect(data.hobbies).toEqual(['Reading']);
+        });
+
+        it('bracket_group_with_nothing_checked_is_an_empty_array', () => {
+            form.innerHTML = `
+                <input name="hobbies[]" type="checkbox" value="Reading" />
+                <input name="hobbies[]" type="checkbox" value="Cycling" />`;
+
+            const data = readData(form);
+
+            expect(data.hobbies).toEqual([]);
+        });
+
+        it('multi_select_with_one_selection_is_still_an_array', () => {
+            form.innerHTML = `
+                <select name="colors" multiple>
+                    <option value="red" selected>Red</option>
+                    <option value="blue">Blue</option>
+                </select>`;
+
+            const data = readData(form);
+
+            expect(data.colors).toEqual(['red']);
+        });
+
+        it('dotted_and_indexed_names_nest_into_objects_and_arrays_as_setFormData_wrote_them', () => {
+            form.innerHTML = `
+                <input name="product.name" value="Headphones" />
+                <input name="product.price" type="number" value="99.99" />
+                <input name="categories[]" type="checkbox" value="electronics" checked />
+                <input name="categories[]" type="checkbox" value="gadgets" checked />
+                <input name="variants[0].size" value="M" />
+                <input name="variants[0].color" value="black" />
+                <input name="variants[1].size" value="L" />
+                <input name="variants[1].color" value="white" />
+                <input name="supplier.company" value="TechCorp" />
+                <input name="supplier.contact.email" value="orders@techcorp.com" />
+                <input name="supplier.verified" type="checkbox" />`;
+
+            const data = readData(form);
+
+            expect(data).toEqual({
+                product: { name: 'Headphones', price: 99.99 },
+                categories: ['electronics', 'gadgets'],
+                variants: [
+                    { size: 'M', color: 'black' },
+                    { size: 'L', color: 'white' },
+                ],
+                supplier: {
+                    company: 'TechCorp',
+                    contact: { email: 'orders@techcorp.com' },
+                    verified: false,
+                },
+            });
         });
     });
 

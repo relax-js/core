@@ -67,6 +67,75 @@ Errors are suppressed while the capture is installed, so rendering continues and
 | `messages()` | The messages of those errors, for readable assertions. |
 | `restore()` | Puts the previously registered handler back. |
 
+## mountRouting
+
+Registers routes and puts `<r-route-target>` elements in the document, so a test navigates the way the application does and gets the rendered component back.
+
+```typescript
+import { mountRouting } from '@relax.js/core/testing';
+
+const routing = mountRouting([
+    { name: 'user', path: '/users/:id', componentTagName: 'user-profile' },
+]);
+try {
+    const page = await routing.navigate<UserProfile>('user', { params: { id: '42' } });
+    expect(page.routeData).toEqual({ id: '42' });
+    expect(page.querySelector('h1')?.textContent).toBe('Alice');
+} finally {
+    routing.unmount();
+}
+```
+
+A navigation is several asynchronous steps: the target must be connected, the component registered, `loadRoute()` awaited. `navigate()` resolves once the component is inside its target, which is after all of that, so `flush()` is not needed. It rejects when no route matched or a guard stopped the navigation, the same errors `navigate()` throws in the application.
+
+When nothing renders within the timeout, the rejection lists the Relaxjs errors reported meanwhile. A `loadRoute()` that threw, or a tag name that is not registered, is named there instead of leaving you with an empty target.
+
+Routes with a `layout` other than the one the document is in cannot be navigated to here, because the router would reload the page to switch layout.
+
+| Member | Description |
+|--------|-------------|
+| `target` | The unnamed `<r-route-target>`, where routes without a `target` render. |
+| `navigate(nameOrUrl, options?)` | Navigates and resolves with the routed component. |
+| `unmount()` | Removes the targets and forgets any parked navigation. |
+
+| Option | Description |
+|--------|-------------|
+| `targets` | Names of additional `<r-route-target name="...">` elements to add. |
+| `timeout` | How long `navigate()` waits for the component, in milliseconds. Default 1000. |
+
+## fakeServer
+
+Replaces the network for `@relax.js/core/http` with canned responses, and records every request.
+
+```typescript
+import { fakeServer, mount, flush } from '@relax.js/core/testing';
+
+const server = fakeServer()
+    .on('GET', '/api/users/42', { id: 42, name: 'Alice' })
+    .on('POST', '/api/users', (request) => ({ id: 43, ...request.json<object>() }), 201);
+try {
+    const { element } = mount<UserProfile>('user-profile');
+    await flush();
+
+    expect(element.querySelector('h1')?.textContent).toBe('Alice');
+    expect(server.requests.map((r) => r.path)).toEqual(['/api/users/42']);
+} finally {
+    server.restore();
+}
+```
+
+Paths are matched without the query string and include the configured base URL, since that is what a server sees. The body is serialized as JSON; a function body is called with the request, which is how a POST answers with what it was sent.
+
+A request nothing was registered for gets a 404 whose body names the registered routes, and is recorded like any other. An unexpected call therefore shows up in `requests` and in the component's error state rather than hanging or reaching the network.
+
+Only requests made through the http module are intercepted. A component calling `fetch` directly is outside this seam.
+
+| Member | Description |
+|--------|-------------|
+| `on(method, path, body?, status?)` | Registers a response. Returns the server, so calls chain. |
+| `requests` | Every request received, in order. Each has `method`, `url`, `path`, `query`, `headers`, `body` and `json()`. |
+| `restore()` | Puts the real fetch back. |
+
 ## Related
 
 - [Error Handling](Errors.md) covers `onError()` and `RelaxError` in application code

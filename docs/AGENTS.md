@@ -19,7 +19,7 @@ left alone unless you pass `--force`.
 | `relaxjs-forms` | `FormValidator`, reading and writing form data, custom controls |
 | `relaxjs-routing` | Routes, `<r-route-target>`, parameters, guards, layouts |
 | `relaxjs-services` | Dependency injection, HTTP, WebSocket, SSE |
-| `relaxjs-testing` | `mount()`, `flush()`, `captureRelaxErrors()`, debug traces |
+| `relaxjs-testing` | `mount()`, `flush()`, `captureRelaxErrors()`, `mountRouting()`, `fakeServer()`, debug traces |
 | `relaxjs-setup` | Startup order, i18n loading, build configuration |
 
 If your agent tool has no skill support, point its instruction file at

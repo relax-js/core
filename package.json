@@ -2,7 +2,7 @@
     "name": "@relax.js/core",
     "version": "1.8.0",
     "description": "Ship faster with less code. Web Component library with routing, forms, DI, templating, and i18n. No virtual DOM, no build magic, no surprise re-renders.",
-    "main": "./dist/index.js",
+    "main": "./dist/index.mjs",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "scripts": {
@@ -36,58 +36,47 @@
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
+            "import": "./dist/index.mjs"
         },
         "./html": {
             "types": "./dist/html/index.d.ts",
-            "import": "./dist/html/index.mjs",
-            "require": "./dist/html/index.js"
+            "import": "./dist/html/index.mjs"
         },
         "./http": {
             "types": "./dist/http/index.d.ts",
-            "import": "./dist/http/index.mjs",
-            "require": "./dist/http/index.js"
+            "import": "./dist/http/index.mjs"
         },
         "./forms": {
             "types": "./dist/forms/index.d.ts",
-            "import": "./dist/forms/index.mjs",
-            "require": "./dist/forms/index.js"
+            "import": "./dist/forms/index.mjs"
         },
         "./routing": {
             "types": "./dist/routing/index.d.ts",
-            "import": "./dist/routing/index.mjs",
-            "require": "./dist/routing/index.js"
+            "import": "./dist/routing/index.mjs"
         },
         "./i18n": {
             "types": "./dist/i18n/index.d.ts",
-            "import": "./dist/i18n/index.mjs",
-            "require": "./dist/i18n/index.js"
+            "import": "./dist/i18n/index.mjs"
         },
         "./elements": {
             "types": "./dist/elements/index.d.ts",
-            "import": "./dist/elements/index.mjs",
-            "require": "./dist/elements/index.js"
+            "import": "./dist/elements/index.mjs"
         },
         "./utils": {
             "types": "./dist/utils/index.d.ts",
-            "import": "./dist/utils/index.mjs",
-            "require": "./dist/utils/index.js"
+            "import": "./dist/utils/index.mjs"
         },
         "./di": {
             "types": "./dist/di/index.d.ts",
-            "import": "./dist/di/index.mjs",
-            "require": "./dist/di/index.js"
+            "import": "./dist/di/index.mjs"
         },
         "./collections": {
             "types": "./dist/collections/Index.d.ts",
-            "import": "./dist/collections/index.mjs",
-            "require": "./dist/collections/index.js"
+            "import": "./dist/collections/index.mjs"
         },
         "./testing": {
             "types": "./dist/testing/index.d.ts",
-            "import": "./dist/testing/index.mjs",
-            "require": "./dist/testing/index.js"
+            "import": "./dist/testing/index.mjs"
         }
     },
     "bin": {

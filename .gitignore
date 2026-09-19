@@ -122,3 +122,5 @@ dist
 # Generated API docs (HTML)
 docs/api/
 .kiwicode/**
+.agent
+

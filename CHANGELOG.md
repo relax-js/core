@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.1 (2026-09-19)
+
+### Changed
+
+- `LoadRoute<T>` and `Routable<T>` accept any object type, so route parameters can be declared as an `interface`.
+- `check` prints file paths relative to the working directory.
+
+### Fixed
+
+- `fakeServer().on()` with a function body left the callback's `request` parameter untyped.
+
 ## 2.1.0 (2026-09-19)
 
 ### Added
@@ -16,12 +27,6 @@
 
 - `FormValidator.FindForm()` searches descendants, so it finds the form inside the wrapper `compileTemplate` appends.
 - `CompiledTemplate.content` is typed `HTMLElement`; it was never a `DocumentFragment`.
-- `LoadRoute<T>` and `Routable<T>` accept any object type, so route parameters can be declared as an `interface`.
-- `check` prints file paths relative to the working directory.
-
-### Fixed
-
-- `fakeServer().on()` with a function body left the callback's `request` parameter untyped.
 
 ## 2.0.0 (2026-09-19)
 

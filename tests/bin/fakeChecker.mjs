@@ -3,13 +3,16 @@
  * The CLI loads it through Node's own `import()`, outside the test runner's module graph, so
  * the calls it saw are shared through `globalThis` rather than an export.
  */
+import * as path from 'path';
+
 export function checkProject(tsconfig) {
     (globalThis.fakeCheckerCalls ??= []).push(tsconfig);
     if (tsconfig.endsWith('clean.json')) {
         return { diagnostics: [], templates: 4, skipped: [] };
     }
+    const absolute = path.resolve('src/A.ts').split(path.sep).join('/');
     return {
-        diagnostics: [{ file: 'src/A.ts', line: 3, column: 7, message: 'Cannot resolve "x"' }],
+        diagnostics: [{ file: absolute, line: 3, column: 7, message: 'Cannot resolve "x"' }],
         templates: 5,
         skipped: [
             { file: 'src/A.ts', line: 1, reason: 'no type argument' },

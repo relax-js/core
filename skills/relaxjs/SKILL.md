@@ -39,7 +39,9 @@ assertions.
 ## Events
 
 Create an explicit class extending `Event`, put the data on it as properties, and register it in
-`HTMLElementEventMap` so `addEventListener` infers the type. Do not use `CustomEvent`.
+the event map of whatever you listen on so `addEventListener` infers the type:
+`HTMLElementEventMap` for elements, `DocumentEventMap` for `document`, `WindowEventMap` for
+`window`. Do not use `CustomEvent`.
 
 ```typescript
 export class IssueSelectedEvent extends Event {

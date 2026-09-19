@@ -124,3 +124,6 @@ docs/api/
 .kiwicode/**
 .agent
 
+# dev.to drafts, local only
+articles/
+

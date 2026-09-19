@@ -15,7 +15,7 @@ async function run(args: string[], options: Record<string, unknown> = {}) {
 }
 
 describe('check', () => {
-    it('prints_each_finding_in_tsc_line_format_and_exits_with_1', async () => {
+    it('prints_each_finding_in_tsc_line_format_relative_to_the_working_directory_and_exits_with_1', async () => {
         const { code, lines } = await run([]);
         expect(lines[0]).toBe('src/A.ts:3:7 - error: Cannot resolve "x"');
         expect(code).toBe(1);

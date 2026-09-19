@@ -297,9 +297,10 @@ export interface ReceivedRequest {
 }
 
 /**
- * A response body, or a function computing one from the request.
+ * A response body, or a function computing one from the request. Spelled without `unknown`,
+ * which would absorb the function member and leave the callback's parameter untyped.
  */
-export type FakeResponseBody = unknown | ((request: ReceivedRequest) => unknown);
+export type FakeResponseBody = ((request: ReceivedRequest) => unknown) | object | string | number | boolean | null;
 
 /**
  * Canned responses for requests made through `@relax.js/core/http`, and a record of what was asked.
@@ -344,7 +345,7 @@ export function fakeServer(): FakeServer {
     interface Registered {
         method: string;
         path: string;
-        body: FakeResponseBody;
+        body: FakeResponseBody | undefined;
         status: number;
     }
     const registered: Registered[] = [];

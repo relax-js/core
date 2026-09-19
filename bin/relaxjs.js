@@ -122,7 +122,11 @@ async function check(args, options = {}) {
     }
 
     const result = checker.checkProject(tsconfig);
-    for (const diagnostic of result.diagnostics) log(checker.formatDiagnostic(diagnostic));
+    const cwd = process.cwd();
+    for (const diagnostic of result.diagnostics) {
+        const file = path.relative(cwd, diagnostic.file).split(path.sep).join('/') || diagnostic.file;
+        log(checker.formatDiagnostic({ ...diagnostic, file }));
+    }
 
     const byReason = ['no type argument', 'not a literal', 'no bind call']
         .map(reason => [result.skipped.filter(s => s.reason === reason).length, reason])

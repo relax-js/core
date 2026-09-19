@@ -48,7 +48,7 @@ delete function is `del`, because `delete` is reserved.
 ```typescript
 const response = await put(`/users/${id}`, JSON.stringify(profile));
 if (!response.success) {
-    this.validator.addErrorToSummary('Save', response.statusReason);
+    this.validator.addErrorToSummary('Save', `The server rejected the change (${response.statusCode})`);
 }
 ```
 

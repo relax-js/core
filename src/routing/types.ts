@@ -69,7 +69,7 @@ export type RouteData = Record<string, RouteParamType>;
  *     routeData?: { userName: string };
  * }
  */
-export interface Routable<T extends RouteData = RouteData> {
+export interface Routable<T extends object = RouteData> {
     routeData?: T;
 }
 
@@ -84,7 +84,7 @@ export interface Routable<T extends RouteData = RouteData> {
  *     }
  * }
  */
-export interface LoadRoute<T extends RouteData = RouteData> {
+export interface LoadRoute<T extends object = RouteData> {
     loadRoute(data: T): void | Promise<void>;
 }
 

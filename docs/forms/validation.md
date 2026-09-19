@@ -50,7 +50,7 @@ const validator = new FormValidator(form, {
     submitCallback: async () => {
         const response = await post('/users', JSON.stringify(readData(form)));
         if (!response.success) {
-            validator.addErrorToSummary('Save', response.statusReason);
+            validator.addErrorToSummary('Save', `The server rejected the change (${response.statusCode})`);
         }
     }
 });

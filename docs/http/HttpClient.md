@@ -147,7 +147,7 @@ All methods return an `HttpResponse`:
 interface HttpResponse {
     success: boolean;           // true for 2xx responses
     statusCode: number;         // HTTP status code
-    statusReason: string;       // HTTP status text
+    statusReason: string;       // HTTP reason phrase; empty over HTTP/2, so not for display
     contentType: string | null; // Response content type
     body: unknown;              // Parsed JSON body (success) or raw text (error)
     charset: string | null;     // Response charset

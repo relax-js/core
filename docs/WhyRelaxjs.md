@@ -240,9 +240,13 @@ class CartUpdatedEvent extends Event {
     }
 }
 
-// Register in global event map for addEventListener type inference
+// Register in the event map of whatever you listen on, so addEventListener infers the type.
+// Elements use HTMLElementEventMap; document has DocumentEventMap, window has WindowEventMap.
 declare global {
     interface HTMLElementEventMap {
+        [CartUpdatedEvent.type]: CartUpdatedEvent;
+    }
+    interface DocumentEventMap {
         [CartUpdatedEvent.type]: CartUpdatedEvent;
     }
 }

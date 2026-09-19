@@ -68,7 +68,7 @@ class ProfilePage extends HTMLElement implements LoadRoute<{ userId: string }> {
         const profile = readData<Profile>(this.form);
         const response = await put(`/users/${this.userId}`, JSON.stringify(profile));
         if (!response.success) {
-            this.validator.addErrorToSummary('Save', response.statusReason);
+            this.validator.addErrorToSummary('Save', `The server rejected the change (${response.statusCode})`);
         }
     }
 }

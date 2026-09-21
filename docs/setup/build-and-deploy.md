@@ -103,6 +103,12 @@ The `--single` flag enables SPA fallback.
 
 ---
 
+## Public pages and crawlers
+
+Search engines and link previews read the served HTML, which for a static host is the empty shell. Run `npx @relax.js/core prerender` after the build to write a real HTML file per public URL. See [Crawlable pages](../seo.md).
+
+---
+
 ## Multiple HTML layouts
 
 [Level 7](../GettingStarted.md) of the Getting Started guide introduces layouts: separate HTML files for distinct UI structures (for example, `index.html` for the authenticated app and `public.html` for login/register pages).

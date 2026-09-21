@@ -56,6 +56,7 @@ const LAYOUT_SENTINEL = '#rlx-layout';
 
 let nextEntryId = 1;
 let popstateAttached = false;
+let anchorListenerAttached = false;
 
 /**
  * Application fragment of the current URL, without the leading `#`.
@@ -211,21 +212,14 @@ export function startRouting() {
         }
     }
 
+    attachAnchorListener();
+
     if (tryLoadRouteFromLayoutNavigation()) {
         return;
     }
 
-    const currentUrl = window.location.pathname || '/';
+    const currentUrl = (window.location.pathname || '/') + window.location.search;
     const routeResult = findRoute(currentUrl, {});
-
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.size > 0) {
-        routeResult.params ??= {};
-        searchParams.forEach((value, key) => {
-            routeResult.params[key] = value;
-        });
-    }
-
     routeResult.fragment = readAppFragment();
 
     if (navigateToLayout(routeResult)) {
@@ -425,11 +419,13 @@ function onPopState(e: PopStateEvent): void {
 function findRoute(routeNameOrUrl: string, options?: NavigateOptions) {
     const theRoutes = options?.routes ?? internalRoutes;
     const params = options?.params;
+    const queryStart = routeNameOrUrl.indexOf('?');
+    const pathOrName = queryStart === -1 ? routeNameOrUrl : routeNameOrUrl.slice(0, queryStart);
 
-    const routeResult = matchRoute(theRoutes, routeNameOrUrl, params);
+    const routeResult = matchRoute(theRoutes, pathOrName, params);
     if (!routeResult) {
         const errorMsg = generateErrorMessage(
-            routeNameOrUrl,
+            pathOrName,
             params,
             theRoutes
         );
@@ -437,11 +433,49 @@ function findRoute(routeNameOrUrl: string, options?: NavigateOptions) {
         throw new RouteError(errorMsg);
     }
 
+    if (queryStart !== -1) {
+        routeResult.params ??= {};
+        new URLSearchParams(routeNameOrUrl.slice(queryStart)).forEach((value, key) => {
+            routeResult.params[key] = value;
+        });
+    }
+
     if (!checkRouteGuards(routeResult)) {
         throw new RouteGuardError('Route guards stopped navigation for route ' + routeNameOrUrl);
     }
 
     return routeResult;
+}
+
+function attachAnchorListener(): void {
+    if (anchorListenerAttached) return;
+    anchorListenerAttached = true;
+    document.addEventListener('click', onAnchorClick);
+}
+
+/**
+ * Lets a plain `<a href>` pointing at a defined route navigate client side, so public pages
+ * can use real anchors that crawlers follow. Anything the browser should handle itself
+ * (other origins, downloads, new tabs, modifier keys, URLs no route matches) is left alone.
+ */
+function onAnchorClick(e: MouseEvent): void {
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+
+    const anchor = e.composedPath().find(
+        (node): node is HTMLAnchorElement => node instanceof HTMLAnchorElement && node.hasAttribute('href')
+    );
+    if (!anchor) return;
+    if (anchor.hasAttribute('download')) return;
+    if (anchor.target && anchor.target !== '_self') return;
+    if (anchor.rel.split(/\s+/).includes('external')) return;
+
+    const url = new URL(anchor.href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+    if (!findRouteByUrl(internalRoutes, url.pathname)) return;
+
+    e.preventDefault();
+    navigate(url.pathname + url.search, { fragment: url.hash.slice(1) || undefined });
 }
 
 function navigateToLayout(routeResult: RouteMatchResult): boolean {

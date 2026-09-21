@@ -81,12 +81,20 @@
         "./check": {
             "types": "./dist/check/index.d.ts",
             "import": "./dist/check/index.mjs"
+        },
+        "./prerender": {
+            "types": "./dist/prerender/index.d.ts",
+            "import": "./dist/prerender/index.mjs"
         }
     },
     "peerDependencies": {
+        "playwright": ">=1.40",
         "typescript": ">=5.4"
     },
     "peerDependenciesMeta": {
+        "playwright": {
+            "optional": true
+        },
         "typescript": {
             "optional": true
         }

@@ -20,6 +20,7 @@ const entryPoints = {
     'collections/index': 'src/collections/Index.ts',
     'testing/index': 'src/testing/index.ts',
     'check/index': 'src/check/index.ts',
+    'prerender/index': 'src/prerender/index.ts',
 };
 
 esbuild
@@ -31,7 +32,7 @@ esbuild
         splitting: true,
         chunkNames: 'chunks/[name]-[hash]',
         bundle: true,
-        external: ['typescript'],
+        external: ['typescript', 'playwright', 'node:*'],
         minify: true,
         target: 'es2022',
         sourcemap: true,

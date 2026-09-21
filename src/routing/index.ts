@@ -43,5 +43,7 @@ export {
 
 export { NavigationHistory, type NavigationEntry } from './NavigationHistory';
 
+export { setPageMeta, type PageMeta } from './pageMeta';
+
 export { RouteLink, type RouteLinkDirection } from './RouteLink';
 export { RouteTarget } from './RoutingTarget';

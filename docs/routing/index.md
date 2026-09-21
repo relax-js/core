@@ -56,6 +56,7 @@ class UserPage extends HTMLElement {
 - **Deciding where a page renders, or rendering into a dialog?** → [&lt;r-route-target&gt;](RoutingTarget.md)
 - **Navigating from markup?** → [&lt;r-link&gt;](RouteLink.md)
 - **Different shells for different parts of the app?** → [Layouts](layouts.md)
+- **Public pages that search engines and link previews must read?** → [Crawlable pages](../seo.md)
 - **A URL changes but nothing renders?** → Set `window.relaxDebug = { routing: true }` and see
   [Debugging](../Debugging.md). The usual cause is a navigation aimed at a target that is not
   connected, which is reported as an error once it is clear no target is coming.

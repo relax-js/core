@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `setPageMeta()` in `@relax.js/core/routing`: writes title, description, canonical, Open Graph, robots and JSON-LD tags for the current page.
+- `npx @relax.js/core prerender`: renders every URL in `dist/sitemap.xml` with headless Chromium and writes `dist/<path>/index.html`. Also `prerender()`, `createStaticServer()` and `createChromiumRenderer()` from `@relax.js/core/prerender`.
+- `playwright` is an optional peer dependency, used only by `prerender`.
+- `navigate('/path?a=1')` merges the query string into the route parameters.
+
+### Changed
+
+- `startRouting()` intercepts clicks on same-origin `<a href>` elements whose path matches a defined route and navigates client side.
+
 ## 2.1.1 (2026-09-19)
 
 ### Changed

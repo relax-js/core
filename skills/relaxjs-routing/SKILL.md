@@ -56,6 +56,13 @@ trapping, a backdrop and Escape-to-close.
 Each target owns its own back/forward history, keyed by name and restored when a target with that
 name reconnects. `navigateBack('modal')` steps that target alone.
 
+## Public pages
+
+Crawlers follow `<a href>`, not `<r-link>`. On a page meant to be indexed, link with plain anchors:
+`startRouting()` turns a click on a same-origin anchor whose path matches a route into client-side
+navigation and leaves every other anchor to the browser. Set the page's head tags from
+`loadRoute` with `setPageMeta({ title, description, image, ... })`.
+
 ## index.html holds only the target
 
 Page components are created by the router after `startRouting()`, which is what keeps them from
@@ -68,3 +75,4 @@ into `index.html` breaks that. See the **relaxjs-setup** skill.
 - `@relax.js/core/docs/routing/RoutingTarget.md` for targets, dialogs and view transitions
 - `@relax.js/core/docs/routing/RouteLink.md` for `<r-link>` and its parameter attributes
 - `@relax.js/core/docs/routing/layouts.md` for multiple HTML shells
+- `@relax.js/core/docs/seo.md` for crawlable public pages, `setPageMeta` and `prerender`

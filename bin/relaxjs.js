@@ -140,7 +140,55 @@ async function check(args, options = {}) {
     return result.diagnostics.length ? 1 : 0;
 }
 
-module.exports = { initAgents, readStamp, check };
+function flagValue(args, flag) {
+    const index = args.indexOf(flag);
+    return index !== -1 && args[index + 1] ? args[index + 1] : undefined;
+}
+
+/**
+ * Renders every URL in the site's sitemap with headless Chromium and writes the HTML into
+ * dist, so crawlers get the content without running the app. Chromium comes from the
+ * project's own playwright install; the library does not depend on it.
+ */
+async function prerender(args, options = {}) {
+    const log = options.log ?? console.log;
+    const project = options.project ?? process.cwd();
+    const dist = path.resolve(project, flagValue(args, '--dist') ?? 'dist');
+    const sitemapFlag = flagValue(args, '--sitemap');
+    const sitemap = sitemapFlag ? path.resolve(project, sitemapFlag) : undefined;
+
+    let module;
+    try {
+        module = await import(options.prerenderModule ?? '../dist/prerender/index.mjs');
+    } catch (error) {
+        log(`Could not load the prerender module: ${error.message}`);
+        return 1;
+    }
+
+    const server = await module.createStaticServer(dist);
+    try {
+        let renderer;
+        try {
+            renderer = await module.createChromiumRenderer();
+        } catch (error) {
+            log(
+                `The prerender command needs a browser: npm install -D playwright && npx playwright install chromium (${error.message})`,
+            );
+            return 1;
+        }
+
+        const result = await module.prerender({ dist, origin: server.origin, renderer, sitemap, log });
+        log(`\n${result.written.length} page${result.written.length === 1 ? '' : 's'} written`);
+        return 0;
+    } catch (error) {
+        log(error.message);
+        return 1;
+    } finally {
+        await server.close();
+    }
+}
+
+module.exports = { initAgents, readStamp, check, prerender };
 
 if (require.main === module) {
     const [command, ...args] = process.argv.slice(2);
@@ -151,6 +199,10 @@ if (require.main === module) {
         check(args).then(code => {
             process.exitCode = code;
         });
+    } else if (command === 'prerender') {
+        prerender(args).then(code => {
+            process.exitCode = code;
+        });
     } else {
         console.log('Usage: npx @relax.js/core <command>');
         console.log('  init-agents [--force]');
@@ -158,6 +210,9 @@ if (require.main === module) {
         console.log('    Run it again after upgrading to see which copies are behind.');
         console.log('  check [--project <tsconfig.json>]');
         console.log('    Checks every compileTemplate<T, F>(`...`) template against its types.');
+        console.log('  prerender [--dist <dir>] [--sitemap <file>]');
+        console.log('    Writes dist/<path>/index.html for every URL in dist/sitemap.xml, rendered');
+        console.log('    with headless Chromium (needs playwright installed in the project).');
         process.exitCode = command ? 1 : 0;
     }
 }

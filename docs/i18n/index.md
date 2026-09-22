@@ -8,6 +8,7 @@ of the platform's own `Intl` objects.
 | Feature | Description | Use Case |
 |---------|-------------|----------|
 | [i18n](i18n.md) | `registerCatalogue`, `setLocale`, `loadNamespaces`, `t` | Translating an application |
+| [Typed copy](typed-copy.md) | JSON per language, typed from `en.json`, checked by `tsc` and `check` | Fixed text where a wrong key must fail the build |
 | [The Intl standard](intl-standard.md) | What the browser already does for plurals, numbers, dates, lists and sorting | Formatting a value without adding a library |
 
 ## Quick Start
@@ -34,6 +35,8 @@ in [bootstrapping](../setup/bootstrapping.md).
 ## Choosing the Right Tool
 
 - **Adding translations to an app?** → [i18n](i18n.md)
+- **Want a misspelled key to fail `tsc` or `check` instead of showing at render?** →
+  [Typed copy](typed-copy.md)
 - **`t('...')` returns the key unchanged?** → Registration or namespace loading, in
   [i18n](i18n.md), and the startup order in [bootstrapping](../setup/bootstrapping.md)
 - **Formatting a number, date, list or plural?** → [The Intl standard](intl-standard.md), before

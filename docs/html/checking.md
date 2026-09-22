@@ -53,7 +53,8 @@ tpl.render(model, handlers);
 ```
 
 `T` is the view model `render()` takes. `F` is the functions context, the second argument to
-`render()`. Both are plain object types; an `interface` works.
+`render()`. Both are plain object types; an `interface` works. A type read from a JSON file works
+too, which is how [typed copy](../i18n/typed-copy.md) gets translation keys checked.
 
 ## What is checked
 

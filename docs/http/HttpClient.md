@@ -36,6 +36,8 @@ interface HttpOptions {
     baseUrl?: string;           // Base URL prepended to all requests
     contentType?: string;       // Default content type (default: 'application/json')
     bearerTokenName?: string;   // JWT token key in localStorage (default: 'jwt', null to disable)
+    getAccessToken?: () => string | null | Promise<string | null>; // Token source, replaces bearerTokenName
+    onUnauthorized?: (response: HttpResponse) => void;             // Called on every 401 response
     timeout?: number;           // Default request timeout in milliseconds
 }
 ```
@@ -214,6 +216,28 @@ configure({
     bearerTokenName: 'auth_token'  // Reads from localStorage.getItem('auth_token')
 });
 ```
+
+### Token From Your Own Code
+
+When the token is held by an OIDC library or anything other than a localStorage key, supply it with `getAccessToken`. It is called before every request and may be async. `bearerTokenName` is ignored while it is set.
+
+```typescript
+configure({
+    getAccessToken: async () => (await userManager.getUser())?.access_token ?? null
+});
+```
+
+### Reacting to 401
+
+`onUnauthorized` runs for every 401 response, before the caller receives it:
+
+```typescript
+configure({
+    onUnauthorized: () => location.assign('/auth/login')
+});
+```
+
+See [Authentication with OpenID Connect](Authentication.md) for complete setups with a backend session cookie or with oidc-client-ts.
 
 ## Error Handling
 

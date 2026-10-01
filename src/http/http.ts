@@ -32,6 +32,35 @@ export interface HttpOptions {
     bearerTokenName?: string | null;
 
     /**
+     * Supplies the token for the `Authorization: Bearer` header, called before every request.
+     *
+     * Use it when the token lives somewhere other than a localStorage key, such as an OIDC
+     * library that renews tokens in the background. When set, `bearerTokenName` is ignored.
+     * Return `null` to send the request without a token. Pass `null` to remove the provider.
+     *
+     * @example
+     * const userManager = new UserManager({ ... }); // oidc-client-ts
+     * configure({
+     *     getAccessToken: async () => (await userManager.getUser())?.access_token ?? null,
+     * });
+     */
+    getAccessToken?: (() => string | null | Promise<string | null>) | null;
+
+    /**
+     * Called when a response has status 401, before the response is returned to the caller.
+     *
+     * Use it as the single place that reacts to an expired or missing session, typically by
+     * sending the user to the login page. The caller still receives the 401 response.
+     * Pass `null` to remove the handler.
+     *
+     * @example
+     * configure({
+     *     onUnauthorized: () => userManager.signinRedirect(),
+     * });
+     */
+    onUnauthorized?: ((response: HttpResponse) => void) | null;
+
+    /**
      * Default request timeout in milliseconds.
      * Uses `AbortSignal.timeout()` to automatically abort requests that take too long.
      * Can be overridden per-request by passing a `signal` in `RequestInit`.
@@ -197,16 +226,32 @@ export function resolveUrl(url: string): string {
 }
 
 /**
- * The JWT token from localStorage, or null when token handling is disabled or no token is stored.
+ * The token from `getAccessToken` when configured, otherwise from localStorage. Null when token
+ * handling is disabled or no token is available.
  *
  * @internal
  */
-export function bearerToken(): string | null {
+export async function bearerToken(): Promise<string | null> {
+    if (config.getAccessToken) {
+        return config.getAccessToken();
+    }
+
     if (!config.bearerTokenName) {
         return null;
     }
 
     return localStorage.getItem(config.bearerTokenName);
+}
+
+/**
+ * Invokes the configured `onUnauthorized` handler when the response is a 401.
+ *
+ * @internal
+ */
+export function reportUnauthorized(response: HttpResponse): void {
+    if (response.statusCode === 401) {
+        config.onUnauthorized?.(response);
+    }
 }
 
 /**
@@ -220,11 +265,10 @@ export function bearerToken(): string | null {
  * const response = await request('/users', { method: 'GET' });
  */
 export async function request(url: string, options?: RequestInit): Promise<HttpResponse> {
-    const token = bearerToken();
-    if (token && options) {
-        const headers = options?.headers
-            ? new Headers(options.headers)
-            : new Headers();
+    const token = await bearerToken();
+    if (token) {
+        options ??= {};
+        const headers = new Headers(options.headers);
 
         if (!headers.get('Authorization')) {
             headers.set('Authorization', 'Bearer ' + token);
@@ -241,7 +285,7 @@ export async function request(url: string, options?: RequestInit): Promise<HttpR
     const response = await fetchImpl(resolveUrl(url), options);
 
     if (!response.ok) {
-        return {
+        const failure: HttpResponse = {
             statusCode: response.status,
             statusReason: response.statusText,
             success: false,
@@ -253,6 +297,8 @@ export async function request(url: string, options?: RequestInit): Promise<HttpR
                 throw new Error('No response received');
             }
         };
+        reportUnauthorized(failure);
+        return failure;
     }
 
     let body: unknown | null = null;

@@ -9,6 +9,7 @@ This module provides HTTP, WebSocket, and Server-Sent Events clients for network
 | [HTTP Client](HttpClient.md#http-client) | Type-safe HTTP functions | REST API calls with JWT handling |
 | [WebSocketClient](HttpClient.md#websocket-client) | WebSocket client with auto-reconnect | Real-time bidirectional messaging |
 | [SSEClient](ServerSentEvents.md) | Server-Sent Events as DOM events | Server push notifications, and streaming a result back from a request |
+| [Authentication](Authentication.md) | OpenID Connect setups using `getAccessToken` and `onUnauthorized` | Signing in with Entra ID, Auth0, Keycloak and similar |
 
 ## Quick Start
 
@@ -97,7 +98,8 @@ sse.connect();
 - Standalone functions (`get`, `post`, `put`, `del`, `request`)
 - Module-wide configuration via `configure()`
 - Automatic base URL prefixing
-- JWT token from localStorage (configurable)
+- JWT token from localStorage, or from your own `getAccessToken` function
+- One `onUnauthorized` handler for every 401 response
 - Query string building
 - Type-safe response casting
 - Replaceable fetch for testing via `setFetch()`

@@ -476,7 +476,12 @@ describe('SSEClient fetch transport', () => {
             },
         });
 
-        configure({ baseUrl: undefined, bearerTokenName: 'jwt' });
+        configure({
+            baseUrl: undefined,
+            bearerTokenName: 'jwt',
+            getAccessToken: null,
+            onUnauthorized: null,
+        });
     });
 
     afterEach(() => {
@@ -484,7 +489,12 @@ describe('SSEClient fetch transport', () => {
         (globalThis as unknown as { EventSource: typeof EventSource }).EventSource =
             originalEventSource;
         vi.unstubAllGlobals();
-        configure({ baseUrl: undefined, bearerTokenName: 'jwt' });
+        configure({
+            baseUrl: undefined,
+            bearerTokenName: 'jwt',
+            getAccessToken: null,
+            onUnauthorized: null,
+        });
     });
 
     describe('choosing a transport', () => {
@@ -553,6 +563,29 @@ describe('SSEClient fetch transport', () => {
 
             expect(url).toBe('/api/verdict');
             expect((init.headers as Headers).get('authorization')).toBe('Bearer token123');
+        });
+
+        it('configured_access_token_provider_is_used_on_the_fetch_transport', async () => {
+            configure({ getAccessToken: async () => 'oidc-token' });
+
+            new SSEClient('/verdict', { autoReconnect: false }).connect();
+            await flush();
+
+            const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+            expect((init.headers as Headers).get('authorization')).toBe('Bearer oidc-token');
+        });
+
+        it('unauthorized_response_on_the_fetch_transport_reaches_the_configured_handler', async () => {
+            const onUnauthorized = vi.fn();
+            configure({ onUnauthorized });
+            mockFetch.mockResolvedValue(errorResponse('expired', 401, 'Unauthorized'));
+
+            new SSEClient('/verdict', { autoReconnect: false }).connect();
+            await flush();
+
+            expect(onUnauthorized).toHaveBeenCalledWith(
+                expect.objectContaining({ statusCode: 401 })
+            );
         });
 
         it('onConnect_fires_once_the_server_accepted_the_request', async () => {

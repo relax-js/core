@@ -19,7 +19,14 @@
  */
 
 import { reportError } from '../errors';
-import { HttpError, HttpResponse, bearerToken, currentFetch, resolveUrl } from './http';
+import {
+    HttpError,
+    HttpResponse,
+    bearerToken,
+    currentFetch,
+    reportUnauthorized,
+    resolveUrl,
+} from './http';
 import { SseFrameParser } from './SseFrameParser';
 
 /**
@@ -366,7 +373,7 @@ export class SSEClient {
             response = await currentFetch()(resolveUrl(this.url), {
                 method: options.method ?? 'GET',
                 body: options.body,
-                headers: this.buildHeaders(options.headers),
+                headers: await this.buildHeaders(options.headers),
                 signal: controller.signal,
                 credentials: options.withCredentials ? 'include' : 'same-origin'
             });
@@ -377,6 +384,7 @@ export class SSEClient {
 
         if (!response.ok) {
             const httpResponse = await this.readErrorResponse(response);
+            reportUnauthorized(httpResponse);
             const error = new HttpError(httpResponse);
             options.onError?.(this, new SSEErrorEvent(error, httpResponse));
             this.finish({ reason: 'failed', error, response: httpResponse });
@@ -442,14 +450,14 @@ export class SSEClient {
         signal.addEventListener('abort', () => controller.abort(), { once: true });
     }
 
-    private buildHeaders(custom?: Record<string, string>): Headers {
+    private async buildHeaders(custom?: Record<string, string>): Promise<Headers> {
         const headers = new Headers({ Accept: 'text/event-stream' });
 
         for (const name in custom) {
             headers.set(name, custom[name]);
         }
 
-        const token = bearerToken();
+        const token = await bearerToken();
         if (token && !headers.get('Authorization')) {
             headers.set('Authorization', 'Bearer ' + token);
         }

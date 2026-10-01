@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.3.0 (2026-10-02)
+
+### Added
+
+- `configure({ getAccessToken })` in `@relax.js/core/http`: supplies the bearer token, sync or async, for http requests and the `SSEClient` fetch transport.
+- `configure({ onUnauthorized })` in `@relax.js/core/http`: called for every 401 response from http requests and the `SSEClient` fetch transport.
+- Docs: Authentication with OpenID Connect (`docs/http/Authentication.md`).
+
+### Fixed
+
+- `request(url)` without options did not send the bearer token.
+
 ## 2.2.0 (2026-09-22)
 
 ### Added

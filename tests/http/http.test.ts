@@ -49,7 +49,13 @@ describe('http module', () => {
             },
         });
 
-        configure({ baseUrl: undefined, contentType: undefined, bearerTokenName: 'jwt' });
+        configure({
+            baseUrl: undefined,
+            contentType: undefined,
+            bearerTokenName: 'jwt',
+            getAccessToken: null,
+            onUnauthorized: null,
+        });
     });
 
     afterEach(() => {
@@ -129,6 +135,74 @@ describe('http module', () => {
             const call = mockFetch.mock.calls[0];
             const headers = call[1].headers;
             expect(headers).toEqual({ 'content-type': 'application/json' });
+        });
+    });
+
+    describe('getAccessToken', () => {
+        it('token_from_async_provider_is_sent_as_bearer', async () => {
+            configure({ getAccessToken: async () => 'oidc-token' });
+            mockFetch.mockResolvedValue(createMockResponse({ id: 1 }));
+
+            await get('/users');
+
+            const headers = mockFetch.mock.calls[0][1].headers as Headers;
+            expect(headers.get('Authorization')).toBe('Bearer oidc-token');
+        });
+
+        it('provider_takes_precedence_over_the_localStorage_token', async () => {
+            mockLocalStorage['jwt'] = 'stale-token';
+            configure({ getAccessToken: () => 'fresh-token' });
+            mockFetch.mockResolvedValue(createMockResponse({ id: 1 }));
+
+            await get('/users');
+
+            const headers = mockFetch.mock.calls[0][1].headers as Headers;
+            expect(headers.get('Authorization')).toBe('Bearer fresh-token');
+        });
+
+        it('provider_returning_null_sends_the_request_without_a_token', async () => {
+            mockLocalStorage['jwt'] = 'should-not-be-used';
+            configure({ getAccessToken: () => null });
+            mockFetch.mockResolvedValue(createMockResponse({ id: 1 }));
+
+            await get('/users');
+
+            const headers = mockFetch.mock.calls[0][1].headers;
+            expect(headers).toEqual({ 'content-type': 'application/json' });
+        });
+
+        it('provider_failure_rejects_the_request_instead_of_sending_it', async () => {
+            configure({
+                getAccessToken: async () => {
+                    throw new Error('session expired');
+                },
+            });
+
+            await expect(get('/users')).rejects.toThrow('session expired');
+            expect(mockFetch).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('onUnauthorized', () => {
+        it('handler_receives_401_responses_and_caller_still_gets_the_response', async () => {
+            const onUnauthorized = vi.fn();
+            configure({ onUnauthorized });
+            mockFetch.mockResolvedValue(createMockResponse('expired', 401, 'Unauthorized'));
+
+            const response = await get('/users');
+
+            expect(onUnauthorized).toHaveBeenCalledWith(response);
+            expect(response.statusCode).toBe(401);
+        });
+
+        it('handler_is_not_called_for_forbidden_responses', async () => {
+            const onUnauthorized = vi.fn();
+            configure({ onUnauthorized });
+            mockFetch.mockResolvedValue(createMockResponse('no', 403, 'Forbidden'));
+
+            await get('/users');
+
+            expect(onUnauthorized).not.toHaveBeenCalled();
         });
     });
 
@@ -228,6 +302,16 @@ describe('http module', () => {
             const call = mockFetch.mock.calls[0];
             const headers = call[1].headers as Headers;
             expect(headers.get('Authorization')).toBe('Bearer existing-token');
+        });
+
+        it('request_without_options_still_sends_the_bearer_token', async () => {
+            mockLocalStorage['jwt'] = 'test-token';
+            mockFetch.mockResolvedValue(createMockResponse({ id: 1 }));
+
+            await request('/users');
+
+            const headers = mockFetch.mock.calls[0][1].headers as Headers;
+            expect(headers.get('Authorization')).toBe('Bearer test-token');
         });
     });
 

@@ -56,7 +56,9 @@ if (!response.success) {
 checking `success` first turns a handled 400 into an exception. A 204 gives a `null` body.
 
 `configure({ baseUrl, timeout, bearerTokenName })` runs once at startup. The bearer token is read
-from `localStorage` unless disabled. `setFetch()` replaces fetch in tests.
+from `localStorage` unless disabled, or from `getAccessToken` (sync or async) when set, which is
+how an OIDC library supplies it. `onUnauthorized` runs for every 401. There is no built-in OIDC
+client. `setFetch()` replaces fetch in tests.
 
 ## Streaming
 
@@ -74,3 +76,4 @@ is how you tell a finished result from a truncated one.
 - `@relax.js/core/docs/DependencyInjection.md` for scopes, property injection and error context
 - `@relax.js/core/docs/http/HttpClient.md` for requests, timeouts, JWT and the WebSocket client
 - `@relax.js/core/docs/http/ServerSentEvents.md` for SSE, terminal events and close reasons
+- `@relax.js/core/docs/http/Authentication.md` for OIDC sign-in with a session cookie or oidc-client-ts

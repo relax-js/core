@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1 (2026-10-13)
+
+### Fixed
+
+- `startRouting()`, `navigate('/path?a=1')` and layout switches removed the query string from the address bar, leaving `location.search` empty in the routed page.
+
 ## 2.3.0 (2026-10-02)
 
 ### Added

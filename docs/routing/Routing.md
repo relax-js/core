@@ -322,7 +322,7 @@ Two things to be aware of:
 - The router removes the fragment from the address bar once routing settles, because `pushState` rewrites the URL from the route's own segments. A page reload will therefore not see it again. For a single use token that is usually what you want, but you need a "link expired, request a new one" state for the reload case.
 - A fragment stays out of server logs, but it is still part of the URL in the browser's history, and most analytics and error reporting scripts read `location.href` rather than `location.pathname`. Check what your instrumentation captures before putting a secret there.
 
-Use a query string instead when the value is not sensitive. Query parameters are merged straight into route parameters:
+Use a query string instead when the value is not sensitive. Query parameters are merged straight into route parameters, and they stay in the address bar, so `location.search` still holds them and a reload sees them again:
 
 ```typescript
 // /users/john?tab=orders

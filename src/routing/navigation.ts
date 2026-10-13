@@ -73,6 +73,17 @@ function readAppFragment(): string | undefined {
     return hash.slice(1);
 }
 
+/**
+ * Query string of a URL passed to the router, with its leading `?`, or `''` when it has none.
+ *
+ * The router builds the address bar from the route's own segments, so the query has to be
+ * carried over explicitly or a page reading `location.search` would find it empty.
+ */
+function readQuery(routeNameOrUrl: string): string {
+    const queryStart = routeNameOrUrl.indexOf('?');
+    return queryStart === -1 ? '' : routeNameOrUrl.slice(queryStart);
+}
+
 function allocEntryId(): number {
     return nextEntryId++;
 }
@@ -222,7 +233,7 @@ export function startRouting() {
     const routeResult = findRoute(currentUrl, {});
     routeResult.fragment = readAppFragment();
 
-    if (navigateToLayout(routeResult)) {
+    if (navigateToLayout(routeResult, window.location.search)) {
         return;
     }
 
@@ -238,7 +249,11 @@ export function startRouting() {
         entryId,
         fragment: routeResult.fragment,
     };
-    history.replaceState(state, '', '/' + routeResult.urlSegments.join('/'));
+    history.replaceState(
+        state,
+        '',
+        '/' + routeResult.urlSegments.join('/') + window.location.search
+    );
 
     const e = new NavigateRouteEvent(
         routeResult.route,
@@ -274,7 +289,8 @@ export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
     }
     const routeResult = findRoute(routeNameOrUrl, options);
     routeResult.fragment = options?.fragment;
-    if (navigateToLayout(routeResult)) {
+    const search = readQuery(routeNameOrUrl);
+    if (navigateToLayout(routeResult, search)) {
         return;
     }
 
@@ -282,8 +298,9 @@ export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
 
     const target = options?.target ?? routeResult.route.target;
     const entryId = allocEntryId();
-    const ourUrl = routeResult.urlSegments.join('/');
-    const currentUrl = window.location.pathname.replace(/^\/|\/$/g, '');
+    const ourUrl = '/' + routeResult.urlSegments.join('/') + search;
+    const currentUrl =
+        '/' + window.location.pathname.replace(/^\/|\/$/g, '') + window.location.search;
     const state: NavigationState = {
         target,
         routeName: routeResult.route.name,
@@ -293,7 +310,7 @@ export function navigate(routeNameOrUrl: string, options?: NavigateOptions) {
         fragment: routeResult.fragment,
     };
     if (currentUrl != ourUrl) {
-        history.pushState(state, '', '/' + routeResult.urlSegments.join('/'));
+        history.pushState(state, '', ourUrl);
     }
     const e = new NavigateRouteEvent(
         routeResult.route,
@@ -478,7 +495,7 @@ function onAnchorClick(e: MouseEvent): void {
     navigate(url.pathname + url.search, { fragment: url.hash.slice(1) || undefined });
 }
 
-function navigateToLayout(routeResult: RouteMatchResult): boolean {
+function navigateToLayout(routeResult: RouteMatchResult, search: string): boolean {
     if (!routeResult) {
         console.error('Route result is null, cannot navigate to layout.');
     }
@@ -513,7 +530,8 @@ function navigateToLayout(routeResult: RouteMatchResult): boolean {
     const navigationState = {
         routeName: routeResult.route.name,
         params: routeResult.params || {},
-        fragment: routeResult.fragment
+        fragment: routeResult.fragment,
+        search,
     };
 
     sessionStorage.setItem('layoutNavigation', JSON.stringify(navigationState));
@@ -553,7 +571,7 @@ function tryLoadRouteFromLayoutNavigation(): boolean {
         if (window.relaxDebug?.routing) {
             console.log('[relaxjs:routing] resuming navigation after layout switch', navigationState);
         }
-        navigate(navigationState.routeName, {
+        navigate(navigationState.routeName + (navigationState.search ?? ''), {
             params: navigationState.params,
             fragment: navigationState.fragment
         });

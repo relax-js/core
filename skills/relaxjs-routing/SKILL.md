@@ -21,9 +21,10 @@ fails with `RouteError: CustomElement has not been registered`.
 ## Path parameters
 
 `:name` is a string segment, `;name` is a number segment that must be all digits and arrives as a
-`number`. Query string values are merged into route parameters. The fragment is not, because it
-has no name: read it from `NavigateRouteEvent.fragment`, and note that the router rewrites the
-address bar once routing settles, so a reload will not see it again.
+`number`. Query string values are merged into route parameters and stay in the address bar. The
+fragment is not, because it has no name: read it from `NavigateRouteEvent.fragment`, and note
+that the router drops it from the address bar once routing settles, so a reload will not see it
+again.
 
 ## Receiving parameters
 

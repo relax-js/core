@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 2.4.1
+
+### Fixed
+
+- 2.4.0 shipped the 2.3.1 `dist`, so `@relax.js/core/jsx` and the other 2.4.0 changes were missing; publishing now always rebuilds and verifies every `exports` path.
+
+## 2.4.0 (2026-10-27)
 
 ### Added
 

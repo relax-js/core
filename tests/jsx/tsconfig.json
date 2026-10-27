@@ -1,0 +1,10 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "jsx": "react",
+        "jsxFactory": "h",
+        "noEmit": true,
+        "rootDir": "../.."
+    },
+    "include": ["./**/*", "../../src/**/*"]
+}

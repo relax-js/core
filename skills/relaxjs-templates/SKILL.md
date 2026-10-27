@@ -1,15 +1,44 @@
 ---
 name: relaxjs-templates
-description: Rendering HTML with @relax.js/core - compileTemplate, the html tagged literal, loops, if/unless, pipes and r-<event> handlers. Use when building or fixing the markup a Relaxjs component renders, when a value renders empty or stale, when render() appears to do nothing, when a second html`` instance never appears, or when a click handler in a template never fires.
+description: Rendering HTML with @relax.js/core - compileTemplate, TSX, the html tagged literal, loops, if/unless, pipes and r-<event> handlers. Use when building or fixing the markup a Relaxjs component renders, when a value renders empty or stale, when render() appears to do nothing, when a second html`` instance never appears, or when a click handler in a template never fires.
 ---
 
 # Relaxjs templates
 
-Two engines. `compileTemplate` handles structure: nested paths, `loop`, `if`/`unless`, pipes and
-`r-<event>` handlers. `html` is a tagged literal for one block of flat values with none of that.
-Do not carry syntax across from one to the other.
+Pick by where the markup lives:
 
-Both update in place, and both fail quietly.
+- **Text** (an HTML file, a `<template>` element, a server response): `compileTemplate`. It
+  handles structure: nested paths, `loop`, `if`/`unless`, pipes and `r-<event>` handlers.
+- **Written in TypeScript** next to the code using it: TSX, when the project has the JSX
+  settings below. Loops and conditions are plain TypeScript and every tag is type-checked.
+- `html` is a tagged literal for one block of flat values, for projects without JSX settings.
+
+Do not carry syntax across from one to the other. `compileTemplate` and `html` update in place and
+fail quietly. TSX builds once and is checked by `tsc`.
+
+## TSX
+
+```json
+"jsx": "react",
+"jsxFactory": "h"
+```
+
+`"react"` is only TypeScript's name for the mode; React is not involved. Every `.tsx` file
+imports `import { h } from '@relax.js/core/jsx'`.
+
+- A tag is the real element. Keep it in a variable and assign to it to update; there is no
+  re-render, no state and no diffing. A list is updated with `replaceChildren(...)`.
+- Props use the DOM property names: `className`, `htmlFor`, `onclick`, `value`. React spellings
+  (`class`, `for`, `onClick`) are type errors. A name with a dash (`data-id`, `aria-label`) is
+  set as an attribute.
+- Custom events go in `on={{ 'issue-selected': (e) => ... }}`, which accepts events registered in
+  `GlobalEventHandlersEventMap`.
+- Every tag is typed `HTMLElement`. Cast for element-specific members:
+  `<input /> as HTMLInputElement`.
+- Use the component class as the tag (`<UserCard user={u} />`), not its tag name. Props are
+  assigned before it connects.
+- No fragments. Return one element, or an array where a child is expected.
+- Text children are text nodes, never HTML.
 
 ## Check before you run
 
@@ -42,7 +71,8 @@ it('every_template_resolves_against_its_view_model', () => {
 
 A mistyped path, a function that was never passed, an unknown event name, a render that changed
 nothing: each renders empty or does nothing, and reports. In a test `captureRelaxErrors()` turns
-that into an assertion, and every message says what to do instead. A blank element is almost always
+that into an assertion, `failOnRelaxErrors()` in the setup file makes an unread one fail the test,
+and every message says what to do instead. A blank element is almost always
 a spelling mistake, not a data problem.
 
 `render()` compares the context by identity, so pass a new object when data changes
@@ -87,6 +117,7 @@ so evaluate the tagged literal again per instance, or use `compileTemplate` with
 
 ## Detail
 
+- `@relax.js/core/docs/html/jsx.md` for TSX setup, props, children and components
 - `@relax.js/core/docs/html/template.md` for `compileTemplate`, loops, conditionals, attribute
   and boolean binding, and the full event syntax
 - `@relax.js/core/docs/html/checking.md` for what `check` verifies and what it skips

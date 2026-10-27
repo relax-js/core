@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { onError } from '../../src/errors';
+import { captureRelaxErrors } from '../../src/testing';
 import {
     findRouteByName,
     findRouteByUrl,
@@ -177,6 +179,20 @@ describe('Router', () => {
                 { name: 'oauth-callback', path: '/oauth/callback', layout: 'public' },
                 { name: 'dashboard', path: '/' },
             );
+        });
+
+        it('reports_being_called_before_define_routes_instead_of_rendering_a_blank_page', () => {
+            onError(null as any);
+            internalRoutes.length = 0;
+            const captured = captureRelaxErrors();
+            try {
+                startRouting();
+            } finally {
+                captured.restore();
+            }
+
+            expect(captured.messages()).toHaveLength(1);
+            expect(captured.messages()[0]).toContain('defineRoutes()');
         });
 
         it('should_redirect_to_correct_layout_when_url_needs_different_layout', () => {

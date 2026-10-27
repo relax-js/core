@@ -125,6 +125,36 @@ export function captureRelaxErrors(): CapturedErrors {
 }
 
 /**
+ * Makes every Relaxjs error throw where it is reported, so a test that never reads the errors
+ * fails instead of passing on a blank element.
+ *
+ * Without it, a mistyped template expression renders an empty string and the test only fails
+ * if it happens to assert on that text. Call it in `beforeEach` of a setup file and every test
+ * gets it. A test that expects an error installs `captureRelaxErrors()`, which takes over until
+ * it is restored. Do not reset the handler with `onError(null)` in tests that rely on this.
+ *
+ * @example
+ * // vitest.setup.ts, listed in test.setupFiles of vitest.config.ts
+ * import { beforeEach } from 'vitest';
+ * import { failOnRelaxErrors } from '@relax.js/core/testing';
+ *
+ * beforeEach(() => {
+ *     failOnRelaxErrors();
+ * });
+ */
+export function failOnRelaxErrors(): { restore(): void } {
+    const previous = onError((error) => {
+        throw error;
+    });
+
+    return {
+        restore() {
+            onError(previous as ErrorHandler);
+        },
+    };
+}
+
+/**
  * How the routing harness is set up.
  */
 export interface RoutingOptions {
@@ -233,16 +263,23 @@ async function navigateAndWait<T extends HTMLElement>(
     }
 
     const route = dispatched.route;
-    const tagName =
-        route.componentTagName ?? (route.component ? customElements.getName(route.component) : null);
-    if (!tagName) {
+    const component = route.component;
+    const tagName = route.componentTagName;
+    if (!tagName && !component) {
         throw new Error(`Route '${route.name}' has neither componentTagName nor component.`);
     }
+    const pageName = tagName ? `<${tagName}>` : `a ${component!.name}`;
+    const findPage = () =>
+        tagName
+            ? targetElement.querySelector(tagName)
+            : Array.from(targetElement.querySelectorAll('*')).find(
+                  (element) => element instanceof component!
+              ) ?? null;
 
-    const previous = targetElement.querySelector(tagName);
+    const previous = findPage();
     return new Promise<T>((resolve, reject) => {
         const rendered = () => {
-            const element = targetElement.querySelector(tagName);
+            const element = findPage();
             return element && element !== previous ? (element as T) : null;
         };
 
@@ -264,7 +301,7 @@ async function navigateAndWait<T extends HTMLElement>(
                 .join('');
             reject(
                 new Error(
-                    `Navigation to '${route.name}' did not render <${tagName}> into the '${targetName ?? 'default'}' route target within ${timeout} ms.` +
+                    `Navigation to '${route.name}' did not render ${pageName} into the '${targetName ?? 'default'}' route target within ${timeout} ms.` +
                         (reported ? ` Errors reported meanwhile:${reported}` : ' No errors were reported.')
                 )
             );
@@ -311,7 +348,9 @@ export interface FakeServer {
     /**
      * Responds to `method` and `path` with `body` serialized as JSON. `path` is compared
      * without the query string and includes the configured base URL, since that is what a
-     * server sees. A function body is called with each request.
+     * server sees. A function body is called with each request. Registering the same method
+     * and path again replaces the earlier response, so a test can override one set up in
+     * `beforeEach`.
      */
     on(method: string, path: string, body?: FakeResponseBody, status?: number): FakeServer;
     /** Puts the real fetch back. */
@@ -399,7 +438,10 @@ export function fakeServer(): FakeServer {
     const server: FakeServer = {
         requests,
         on(method, path, body, status = 200) {
-            registered.push({ method: method.toUpperCase(), path, body, status });
+            const upper = method.toUpperCase();
+            const existing = registered.findIndex((r) => r.method === upper && r.path === path);
+            if (existing !== -1) registered.splice(existing, 1);
+            registered.push({ method: upper, path, body, status });
             return server;
         },
         restore() {

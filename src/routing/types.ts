@@ -51,6 +51,24 @@ export interface Route {
     guards?: RouteGuard[];
 
     component?: WebComponentConstructor;
+
+    /**
+     * Imports the module that defines `componentTagName`, the first time the route is visited.
+     *
+     * Use it for pages that should not be in the startup bundle. The bundler turns each
+     * `import()` into its own chunk, and the page's own imports (its services, for instance) run
+     * before the page is defined. Without `load`, the component must be defined before
+     * `defineRoutes()` is called.
+     *
+     * @example
+     * {
+     *     name: 'profile',
+     *     path: '/profile/:id',
+     *     componentTagName: 'profile-page',
+     *     load: () => import('./pages/ProfilePage'),
+     * }
+     */
+    load?: () => Promise<unknown>;
 }
 
 export type RouteParamType = string | number;

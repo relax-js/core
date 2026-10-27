@@ -98,10 +98,19 @@ Each skipped template is counted in the summary with its reason.
   file gives the checker no context type.
 - **A custom pipe registry** is a runtime value, so pipe names are not checked for that call.
 
-Structure is read by a small scanner, not a browser. It does not apply the browser's content-model
-rules (a `<p>` closed early by a block element, a `<tr>` outside a `<table>`, raw text inside
-`<textarea>` or `<script>`), so a `loop` alias may be scoped differently from how it renders in
-such markup. Keep templates well-formed and the two agree.
+Structure is read by a small scanner, not a browser. It applies the two content-model rules that
+change what a template renders, and reports each where it happens:
+
+- **A block element inside a `<p>`** closes the paragraph, so `<p loop="u in users"><div>{{u.name}}</div></p>`
+  renders the `<div>` after the paragraph, outside the loop. The checker scopes it the same way
+  and reports `u.name` as unresolved.
+- **A table part outside a `<table>`** (`<tr>`, `<td>`, `<tbody>` and the like) is dropped with
+  its attributes, including a `loop` on it, and its content moves into the parent. A custom
+  element wrapping rows is the usual case. `compileTemplate` parses its template inside a
+  `<div>`, so a `<tr>` at the root is dropped too; an `html` template keeps one.
+
+Other parser rules, such as raw text inside `<textarea>` or `<script>`, are not applied. Keep
+templates well-formed and the two agree.
 
 Column numbers count the characters as written in the source, so an escape sequence such as `\"`
 or `\n` inside a template shifts what follows it by one.

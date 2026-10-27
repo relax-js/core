@@ -44,6 +44,7 @@ Open `tsconfig.json` and make sure these options are set:
         "moduleResolution": "Bundler",
         "experimentalDecorators": false,
         "useDefineForClassFields": true,
+        "verbatimModuleSyntax": true,
         "strict": true,
         "skipLibCheck": true,
         "lib": ["ES2022", "DOM"]
@@ -59,6 +60,18 @@ The important lines for decorators:
 - **`"useDefineForClassFields": true`** — required so class fields behave as the standard specifies. Relaxjs form components rely on this.
 
 You do **not** need `emitDecoratorMetadata`. That option only applies to legacy decorators and is ignored here.
+
+One more line is not about decorators but about components being registered at all:
+
+- **`"verbatimModuleSyntax": true`** keeps every import that is not written as `import type`. Without it, an import used only as a type is removed from the bundle:
+
+  ```ts
+  import { ProfilePage } from './ProfilePage';
+
+  navigate<ProfilePage>('profile');
+  ```
+
+  `ProfilePage` appears only in a type position here, so the import is dropped, `ProfilePage.ts` never runs and its `customElements.define` never happens. `defineRoutes()` then throws because the tag is not defined, in a file that does import the component. With the option on, the import stays and the module runs. The price is writing `import type { ... }` for imports that really are types only; TypeScript reports the ones that need it.
 
 ---
 

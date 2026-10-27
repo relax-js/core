@@ -18,8 +18,8 @@ class ApiClient {
 ```
 
 **Never put `@ContainerService` on a web component.** The browser constructs custom elements with
-zero arguments. Components use property injection instead, and the field is resolved by the time
-`connectedCallback` runs:
+zero arguments, and the decorator throws on a class extending `HTMLElement`. Components use
+property injection instead, and the field is resolved by the time `connectedCallback` runs:
 
 ```typescript
 class UserPanel extends HTMLElement {
@@ -29,8 +29,9 @@ class UserPanel extends HTMLElement {
 ```
 
 An injected field that is `undefined` means the component was constructed before the service was
-registered. Services register as a side effect of being imported, so in `main.ts` service imports
-come before component imports. See the **relaxjs-setup** skill.
+registered, and the error reported for it names the tag, field and service. Services register as a
+side effect of being imported, so in `main.ts` service imports come before component imports. See
+the **relaxjs-setup** skill.
 
 Use `serviceCollection.register()` for things you cannot decorate, such as a config object or a
 third-party client, and register those before anything else runs.

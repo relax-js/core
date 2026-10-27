@@ -1,5 +1,7 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, beforeEach } from 'vitest';
 import { container, ContainerService, Inject, serviceCollection } from '../src/DependencyInjection';
+import { onError } from '../src/errors';
+import { captureRelaxErrors } from '../src/testing';
 
 class Logger {
     log(msg: string) {}
@@ -161,5 +163,48 @@ describe('Inject Property Decorator', () => {
 
         // With 'closest' scope, each resolution creates a new instance
         expect(a.getServiceId()).not.toBe(b.getServiceId());
+    });
+});
+
+describe('startup mistakes', () => {
+    beforeEach(() => {
+        onError(null as any);
+    });
+
+    test('container_service_on_a_component_is_rejected_because_the_browser_constructs_it_without_arguments', () => {
+        class Clock {}
+
+        expect(() => {
+            @ContainerService({ inject: [Clock] })
+            class ClockPanel extends HTMLElement {
+                constructor(public clock: Clock) {
+                    super();
+                }
+            }
+            return ClockPanel;
+        }).toThrow('@Inject');
+    });
+
+    test('inject_names_the_component_and_field_when_the_service_is_not_registered_yet', () => {
+        class NotYetRegistered {}
+
+        class EarlyPanel extends HTMLElement {
+            @Inject(NotYetRegistered)
+            service!: NotYetRegistered;
+        }
+        customElements.define('test-early-panel', EarlyPanel);
+
+        const captured = captureRelaxErrors();
+        try {
+            new EarlyPanel();
+        } finally {
+            captured.restore();
+        }
+
+        expect(captured.messages()).toHaveLength(1);
+        expect(captured.messages()[0]).toContain('<test-early-panel>');
+        expect(captured.messages()[0]).toContain('EarlyPanel.service');
+        expect(captured.messages()[0]).toContain("'NotYetRegistered' is not registered");
+        expect(captured.messages()[0]).toContain('import');
     });
 });

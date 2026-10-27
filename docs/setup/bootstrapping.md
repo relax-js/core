@@ -63,6 +63,8 @@ The matching `index.html`:
 
 Notice the body contains **only** `<r-route-target>`. Page components are created by the router after `startRouting()` runs, so they never construct before DI and i18n are ready.
 
+A page loaded on first visit with the route's `load: () => import('./pages/ProfilePage')` is not imported in `main.ts` at all. Its module imports the services it injects, and those run before the page is defined, so the order is kept by the module itself. See [Loading a page on first visit](../routing/Routing.md#loading-a-page-on-first-visit).
+
 ---
 
 ## Why the import order matters
@@ -76,7 +78,7 @@ import './components/UserPanel';   // ❌ custom element defined
 import './services/UserService';   // ❌ service registered AFTER
 ```
 
-...and `<user-panel>` appears in `index.html`, the browser constructs it before `UserService` is registered. Every `@Inject(UserService)` field resolves to `undefined`.
+...and `<user-panel>` appears in `index.html`, the browser constructs it before `UserService` is registered. Every `@Inject(UserService)` field resolves to `undefined`, and each one is reported through [onError()](../Errors.md) with the tag, the field and the service it was waiting for.
 
 **Always import services before components.** Then import subsystems (i18n, routing) last.
 
@@ -132,15 +134,17 @@ Key point: the root component is appended **after** async setup, not written dir
 
 ### `@Inject` field is undefined
 
-Cause: a component constructed before its service was registered. Fix: move the service import above the component import in `main.ts`.
+Reported as `<user-panel> was created before its service was registered`. Cause: a component constructed before its service was registered. Fix: move the service import above the component import in `main.ts`, and keep the component's tag out of `index.html`.
 
 ### `t('...')` returns the key unchanged
 
-Cause: the namespace wasn't loaded, or the component rendered before `setLocale()` finished. Fix: `await loadNamespaces([...])` before rendering, and re-render on `localechange` if the user can switch locales.
+Reported as `t('shop:title') returned the key because the 'shop' translations are not loaded`, once per namespace. Cause: the namespace wasn't loaded, or the component rendered before `setLocale()` finished. Fix: `await loadNamespaces([...])` before rendering, and re-render on `localechange` if the user can switch locales.
+
+A key missing from a loaded namespace is not reported this way; register [`onMissingTranslation()`](../i18n/i18n.md) for those.
 
 ### Routing renders a blank page
 
-Cause: `startRouting()` ran before `defineRoutes(...)`. Fix: always call `defineRoutes` first.
+Reported as `startRouting() was called before defineRoutes()`. Fix: always call `defineRoutes` first.
 
 ---
 

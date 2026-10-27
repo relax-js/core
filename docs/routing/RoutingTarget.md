@@ -54,7 +54,7 @@ navigate("user", { params: { userName: "john" }, target: "rightPanel" });
 
 ## Route Component Registration
 
-Components must be registered as custom elements before routing:
+Components must be registered as custom elements before routing, unless the route loads them:
 
 ```typescript
 // Using componentTagName
@@ -66,7 +66,18 @@ const routes: Route[] = [
 const routes: Route[] = [
     { path: "/dashboard", component: DashboardPage }
 ];
+
+// Imported on first visit
+const routes: Route[] = [
+    {
+        path: "/dashboard",
+        componentTagName: "dashboard-page",
+        load: () => import("./pages/DashboardPage"),
+    }
+];
 ```
+
+See [Loading a page on first visit](Routing.md#loading-a-page-on-first-visit).
 
 ### Dialog Targets
 
@@ -138,5 +149,7 @@ Dialog targets do not use view transitions (the dialog open/close provides its o
 
 | Error | Cause |
 |-------|-------|
-| `RouteError: CustomElement has not been registered` | Route's `componentTagName` not defined via `customElements.define()` |
-| `RouteError: Failed to find component` | Route's `component` class not registered |
+| `Component with tagName '...' is not defined in customElements.` | Thrown by `defineRoutes()`: the route's `componentTagName` is not defined yet and the route has no `load` |
+| `Route '...' could not load <...>: its load() failed.` | The route's `load()` rejected; the cause is in the error context |
+| `Route '...' ran load(), but <...> is still not defined.` | The loaded module defines another tag, or none |
+| `Failed to find component for route` | The route has neither `componentTagName` nor `component` |

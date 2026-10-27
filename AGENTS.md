@@ -23,7 +23,7 @@ Rules for working **on** this library. For working **with** it in a consuming pr
 - Form components must use `ElementInternals` with `formAssociated = true`
 - Form components must expose `name`, `value`, `disabled`, `required`, `dataType` and implement `getData()` / `setData()` for typed values
 - DI declares dependencies explicitly (`@ContainerService({ inject: [...] })`), no metadata reflection -- do not introduce another DI mechanism
-- Explicit event classes extending `Event` (not `CustomEvent`); data as class properties; registered in `HTMLElementEventMap`
+- Explicit event classes extending `Event` (not `CustomEvent`); data as class properties; registered in `GlobalEventHandlersEventMap`
 - `declare type` for string enums -- never `enum`
 - Always ask before changing public APIs
 
@@ -95,7 +95,7 @@ Experienced developers who concluded that large frameworks abstract away too muc
 - Never silently consume errors (no empty `.catch()`, no catch-and-ignore)
 - No code comments; use JSDoc with purpose, context, and usage examples
 - Use `declare type` for string enums (not `enum`)
-- Create explicit event classes extending `Event` (not `CustomEvent`); store data as class properties; register in `HTMLElementEventMap`
+- Create explicit event classes extending `Event` (not `CustomEvent`); store data as class properties; register in `GlobalEventHandlersEventMap`
 - Use `ElementInternals` with `formAssociated = true` for form components
 - `null` vs `undefined` semantics: use `null` for intentional or structural absence (a defined terminator, an empty slot by design). Use `undefined` for "not yet set" or for query results that returned nothing (like `Array.find`). Do not mix within a single concept (e.g. pick one for a linked-list node's prev/next across the whole API).
 

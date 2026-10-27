@@ -294,7 +294,11 @@ export async function request(url: string, options?: RequestInit): Promise<HttpR
             charset: response.headers.get('charset'),
 
             as() {
-                throw new Error('No response received');
+                throw new Error(
+                    `${options?.method ?? 'GET'} ${resolveUrl(url)} failed with status ${response.status}, ` +
+                        'so there is no data to read. Check response.success before calling as(), ' +
+                        'and read response.body for what the server said.'
+                );
             }
         };
         reportUnauthorized(failure);

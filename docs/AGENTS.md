@@ -15,11 +15,11 @@ left alone unless you pass `--force`.
 | Skill | Covers |
 |-------|--------|
 | `relaxjs` | The core model, and where the rest is. Start here |
-| `relaxjs-templates` | `compileTemplate`, `html`, loops, conditionals, pipes, `r-<event>` |
+| `relaxjs-templates` | `compileTemplate`, TSX, `html`, loops, conditionals, pipes, `r-<event>` |
 | `relaxjs-forms` | `FormValidator`, reading and writing form data, custom controls |
 | `relaxjs-routing` | Routes, `<r-route-target>`, parameters, guards, layouts |
 | `relaxjs-services` | Dependency injection, HTTP, WebSocket, SSE |
-| `relaxjs-testing` | `mount()`, `flush()`, `captureRelaxErrors()`, `mountRouting()`, `fakeServer()`, debug traces |
+| `relaxjs-testing` | `mount()`, `flush()`, `captureRelaxErrors()`, `failOnRelaxErrors()`, `mountRouting()`, `fakeServer()`, debug traces |
 | `relaxjs-setup` | Startup order, i18n loading, build configuration |
 
 Templates are the part an agent cannot verify by reading. Give `compileTemplate` its `<T, F>`

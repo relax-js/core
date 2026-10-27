@@ -33,12 +33,46 @@ export interface TextEvent {
     offset: number;
 }
 
-export type TemplateEvent = OpenEvent | CloseEvent | TextEvent;
+/**
+ * Markup the browser parses into a different structure than the one written,
+ * reported at the `<` of the tag that triggers it.
+ */
+export interface ReshapeEvent {
+    kind: 'reshape';
+    offset: number;
+    message: string;
+}
+
+export type TemplateEvent = OpenEvent | CloseEvent | TextEvent | ReshapeEvent;
+
+/**
+ * What the template text is parsed inside. `compileTemplate` wraps it in a
+ * `<div>`, so a table row at its root is dropped. The `html` tag assigns it to
+ * a `<template>`, which keeps one.
+ */
+export type TemplateParent = 'element' | 'template';
 
 const voidElements = new Set([
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
     'link', 'meta', 'param', 'source', 'track', 'wbr',
 ]);
+
+const closesParagraph = new Set([
+    'address', 'article', 'aside', 'blockquote', 'center', 'details', 'dialog', 'dir', 'div',
+    'dl', 'dd', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3',
+    'h4', 'h5', 'h6', 'header', 'hgroup', 'hr', 'li', 'listing', 'main', 'menu', 'nav', 'ol',
+    'p', 'pre', 'search', 'section', 'summary', 'table', 'ul', 'xmp',
+]);
+
+const paragraphScopeBoundaries = new Set([
+    'applet', 'button', 'caption', 'marquee', 'object', 'table', 'td', 'template', 'th',
+]);
+
+const tableParts = new Set([
+    'caption', 'col', 'colgroup', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr',
+]);
+
+const tableContexts = new Set(['table', 'template', ...tableParts]);
 
 /**
  * Scans a template into open, close and text events. Close events are
@@ -46,11 +80,16 @@ const voidElements = new Set([
  * it, and one with no matching open element is ignored, so the event stream
  * always balances the way a browser would.
  *
+ * Two content-model rules are applied the way the browser applies them, each
+ * with a reshape event: a block element closes an open `<p>`, and a table part
+ * outside a table is dropped while its content stays. Loop scopes then match
+ * what renders.
+ *
  * @example
  * scanTemplate('<p>Hi {{name}}</p>');
  * // [{ kind: 'open', tag: 'p', ... }, { kind: 'text', text: 'Hi {{name}}', offset: 3 }, { kind: 'close', tag: 'p' }]
  */
-export function scanTemplate(text: string): TemplateEvent[] {
+export function scanTemplate(text: string, parent: TemplateParent = 'element'): TemplateEvent[] {
     const events: TemplateEvent[] = [];
     const open: string[] = [];
     let i = 0;
@@ -125,6 +164,34 @@ export function scanTemplate(text: string): TemplateEvent[] {
             i += whole.length;
         }
 
+        if (closesParagraph.has(tag)) {
+            const paragraph = openParagraph(open);
+            if (paragraph !== -1) {
+                if (tag !== 'p') {
+                    events.push({
+                        kind: 'reshape',
+                        offset: lt,
+                        message:
+                            `<${tag}> closes the open <p>, because a paragraph cannot contain it. ` +
+                            `The browser renders the <${tag}> after the paragraph, outside any loop or if on the <p>`,
+                    });
+                }
+                while (open.length > paragraph) events.push({ kind: 'close', tag: open.pop()! });
+            }
+        }
+
+        const atTemplateRoot = parent === 'template' && open.length === 0;
+        if (tableParts.has(tag) && !atTemplateRoot && !open.some(t => tableContexts.has(t))) {
+            events.push({
+                kind: 'reshape',
+                offset: lt,
+                message:
+                    `<${tag}> outside a <table> is dropped by the browser, together with its attributes, ` +
+                    `and its content moves into the parent element. Put it inside a <table>`,
+            });
+            continue;
+        }
+
         const isVoid = voidElements.has(tag);
         events.push({ kind: 'open', tag, attributes, selfClosing: selfClosing || isVoid });
         if (!selfClosing && !isVoid) open.push(tag);
@@ -132,4 +199,12 @@ export function scanTemplate(text: string): TemplateEvent[] {
 
     while (open.length) events.push({ kind: 'close', tag: open.pop()! });
     return events;
+}
+
+function openParagraph(open: string[]): number {
+    for (let depth = open.length - 1; depth >= 0; depth--) {
+        if (open[depth] === 'p') return depth;
+        if (paragraphScopeBoundaries.has(open[depth])) return -1;
+    }
+    return -1;
 }

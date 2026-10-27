@@ -50,11 +50,45 @@ interface Route {
     path: string;               // URL pattern with parameters
     componentTagName?: string;  // Custom element tag name
     component?: WebComponentConstructor;  // Or class reference
+    load?: () => Promise<unknown>;        // Imports componentTagName on first visit
     target?: string;            // Named r-route-target (default: unnamed)
     layout?: string;            // HTML file for different shells
     guards?: RouteGuard[];      // Access control
 }
 ```
+
+`component` takes the class, so the page's module is imported at startup and the import can never
+be dropped by the bundler. `componentTagName` takes the tag name; the module defining it must
+still be imported before `defineRoutes()`, unless the route has `load`.
+
+### Loading a page on first visit
+
+A page that should stay out of the startup bundle names its tag and how to import it:
+
+```typescript
+import type { ProfilePage } from './pages/ProfilePage';
+
+const routes: Route[] = [
+    { name: 'home', path: '/', component: HomePage },
+    {
+        name: 'profile',
+        path: '/profile/:id',
+        componentTagName: 'profile-page',
+        load: () => import('./pages/ProfilePage'),
+    },
+];
+```
+
+The first navigation to `profile` awaits `load()` and then creates `<profile-page>`. Later
+navigations find the tag defined and skip it. Vite and esbuild put each `import()` in its own
+chunk. The page's own imports, such as the services it injects, run before the page is defined,
+so they are ready when it constructs.
+
+`import type` keeps the class available for `navigate<ProfilePage>()` and similar without
+pulling the module into the startup bundle.
+
+If `load()` rejects, or finishes without defining the tag, the navigation is reported through
+[`onError`](../Errors.md) with the route name and tag, and nothing is rendered.
 
 ### URL Pattern Syntax
 

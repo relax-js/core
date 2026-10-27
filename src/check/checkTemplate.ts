@@ -96,6 +96,10 @@ export function checkTemplate(text: string, env: CheckEnvironment): Finding[] {
             scopes.pop();
             continue;
         }
+        if (event.kind === 'reshape') {
+            findings.push({ offset: event.offset, message: event.message });
+            continue;
+        }
 
         const bindings: Binding[] = [];
         const loop = event.attributes.find(a => a.name === 'loop');
@@ -127,9 +131,11 @@ export function checkTemplate(text: string, env: CheckEnvironment): Finding[] {
  */
 export function checkHtmlTemplate(text: string, env: CheckEnvironment): Finding[] {
     const findings: Finding[] = [];
-    for (const event of scanTemplate(text)) {
+    for (const event of scanTemplate(text, 'template')) {
         if (event.kind === 'text') {
             checkHtmlInterpolation(event.text, event.offset, env, findings);
+        } else if (event.kind === 'reshape') {
+            findings.push({ offset: event.offset, message: event.message });
         } else if (event.kind === 'open') {
             for (const attr of event.attributes) checkHtmlInterpolation(attr.value, attr.offset, env, findings);
         }

@@ -278,13 +278,14 @@ describe('http module', () => {
             expect(response.statusReason).toBe('Not Found');
         });
 
-        it('should throw when calling as() on error response', async () => {
+        it('as_on_a_failed_response_says_to_check_success_first', async () => {
             const errorResponse = createMockResponse('Error', 500, 'Server Error');
             mockFetch.mockResolvedValue(errorResponse);
 
             const response = await request('/test', { method: 'GET' });
 
-            expect(() => response.as()).toThrow('No response received');
+            expect(() => response.as()).toThrow('GET /test failed with status 500');
+            expect(() => response.as()).toThrow('response.success');
         });
 
         it('should not add Authorization header if already present', async () => {

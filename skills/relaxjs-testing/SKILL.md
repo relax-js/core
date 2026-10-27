@@ -1,6 +1,6 @@
 ---
 name: relaxjs-testing
-description: Testing and debugging components built on @relax.js/core - mount(), flush(), captureRelaxErrors(), mountRouting() and fakeServer() from @relax.js/core/testing, the onError channel and the window.relaxDebug traces. Use when writing a test for a Relaxjs component, page, route or template, when a test sees an empty element or an element that never initialised, or when diagnosing a page that renders nothing without reporting an error.
+description: Testing and debugging components built on @relax.js/core - mount(), flush(), captureRelaxErrors(), failOnRelaxErrors(), mountRouting() and fakeServer() from @relax.js/core/testing, the onError channel and the window.relaxDebug traces. Use when writing a test for a Relaxjs component, page, route or template, when a test sees an empty element or an element that never initialised, or when diagnosing a page that renders nothing without reporting an error.
 ---
 
 # Testing and debugging Relaxjs
@@ -43,7 +43,14 @@ try {
 Errors are suppressed while the capture is installed, so rendering continues and the assertion is
 reached. `restore()` puts the previous handler back, so call it in a `finally` or an `afterEach`.
 Assert on `captured.messages()` even in tests that are about something else: it is what turns a
-typo into a failure instead of a mystery. A typo in a typed template is cheaper still:
+typo into a failure instead of a mystery.
+
+Better still, make unread errors fail every test. Call `failOnRelaxErrors()` in `beforeEach` of the
+vitest setup file (`test.setupFiles`): every reported error then throws where it happens, and a
+test that expects one installs `captureRelaxErrors()`, which takes over until `restore()`. If the
+project has that setup file, never reset with `onError(null as any)`; it switches the check off.
+
+A typo in a typed template is cheaper still:
 `npx @relax.js/core check` reports it with a file and line, no test needed (see the
 **relaxjs-templates** skill).
 
@@ -69,7 +76,8 @@ try {
 
 Paths include the configured base URL and exclude the query string, which lands in
 `request.query`. An unregistered request gets a 404 naming what is registered and is still
-recorded, so an unexpected call is visible in `server.requests`. Do not stub `fetch` globally or
+recorded, so an unexpected call is visible in `server.requests`. Registering the same method and
+path again replaces the earlier response, so a test can override one from `beforeEach`. Do not stub `fetch` globally or
 mock the component's own methods; the seam is the http module.
 
 ## Navigate like the app, then assert on the page
@@ -103,8 +111,9 @@ A page test combines the three: `fakeServer()` for its data, `mountRouting()` to
 
 Routing targets, the error handler and the fetch replacement are module-level. Every helper
 returns the means to undo itself (`unmount()`, `restore()`); call it in `afterEach` or a `finally`
-so one test's leftovers cannot explain the next test's failure. Reset `onError(null as any)` in
-`beforeEach` when a test registers a handler of its own.
+so one test's leftovers cannot explain the next test's failure. A test that registers an `onError`
+handler of its own restores the previous one afterwards rather than resetting to `null`, which
+would also remove `failOnRelaxErrors()`.
 
 ## Debugging a running app
 

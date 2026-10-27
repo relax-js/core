@@ -12,6 +12,8 @@ import {
     defaultFormatICU,
     setMessageFormatter,
 } from '../../src/i18n/icu';
+import { onError } from '../../src/errors';
+import { captureRelaxErrors } from '../../src/testing';
 
 describe('i18n', () => {
     beforeEach(async () => {
@@ -356,6 +358,47 @@ describe('i18n', () => {
             expect(translationInHandler).toBe('Hej, Test!');
 
             document.removeEventListener('localechange', handler);
+        });
+    });
+
+    describe('translations used before they are loaded', () => {
+        beforeEach(() => {
+            onError(null as any);
+        });
+
+        it('reports_a_key_whose_namespace_was_never_loaded_instead_of_only_returning_the_key', () => {
+            const captured = captureRelaxErrors();
+            try {
+                expect(t('checkout:title')).toBe('checkout:title');
+            } finally {
+                captured.restore();
+            }
+
+            expect(captured.messages()).toHaveLength(1);
+            expect(captured.messages()[0]).toContain("loadNamespace('checkout')");
+        });
+
+        it('reports_each_unloaded_namespace_once_so_a_page_full_of_keys_is_one_error', () => {
+            const captured = captureRelaxErrors();
+            try {
+                t('basket:title');
+                t('basket:total');
+            } finally {
+                captured.restore();
+            }
+
+            expect(captured.messages()).toHaveLength(1);
+        });
+
+        it('does_not_report_a_missing_key_in_a_loaded_namespace', () => {
+            const captured = captureRelaxErrors();
+            try {
+                t('noSuchKey');
+            } finally {
+                captured.restore();
+            }
+
+            expect(captured.messages()).toEqual([]);
         });
     });
 

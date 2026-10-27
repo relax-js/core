@@ -12,6 +12,7 @@
  * const items = t('shop:items', { count: 5 });
  */
 
+import { reportError } from '../errors';
 import { formatICU } from './icu';
 import { registerBuiltinNamespaces } from './builtins';
 import { normalizeLocale, resolveNamespace, TranslationMap } from './catalogue';
@@ -67,6 +68,7 @@ declare global {
 const fallbackLocale: Locale = 'en';
 let currentLocale: Locale = fallbackLocale;
 const loadedNamespaces = new Set<Namespace>();
+const reportedNamespaces = new Set<Namespace>();
 const translations: Translations = {};
 let missingHandler: MissingTranslationHandler | null = null;
 
@@ -85,6 +87,7 @@ export async function setLocale(locale: string): Promise<void> {
     const normalized = normalizeLocale(locale);
     currentLocale = normalized;
     loadedNamespaces.clear();
+    reportedNamespaces.clear();
     Object.keys(translations).forEach(ns => delete translations[ns]);
     await loadNamespace('r-common');
     if (typeof document !== 'undefined') {
@@ -187,6 +190,7 @@ export function t(
     const [namespace, key] = fullKey.includes(':')
         ? fullKey.split(':')
         : ['r-common', fullKey];
+    if (!loadedNamespaces.has(namespace)) reportUnloadedNamespace(fullKey, namespace);
     const message = translations[namespace]?.[key];
 
     if (!message) {
@@ -196,6 +200,25 @@ export function t(
     }
 
     return format(message, values, options?.fallback ?? fullKey);
+}
+
+/**
+ * A key whose namespace is not loaded returns the key itself, which looks like a missing
+ * translation. The usual cause is startup order: `t()` ran before `setLocale()` or
+ * `loadNamespace()` finished. Reported once per namespace so a page full of keys is one error.
+ */
+function reportUnloadedNamespace(fullKey: string, namespace: Namespace): void {
+    if (reportedNamespaces.has(namespace)) return;
+    reportedNamespaces.add(namespace);
+
+    const remedy =
+        namespace === 'r-common'
+            ? 'Await setLocale() during startup, before anything calls t()'
+            : `Await loadNamespace('${namespace}') before using its keys`;
+    reportError(
+        `t('${fullKey}') returned the key because the '${namespace}' translations are not loaded. ${remedy}.`,
+        { key: fullKey, namespace, locale: currentLocale }
+    );
 }
 
 function format(message: string, values: Record<string, any> | undefined, onError: string): string {

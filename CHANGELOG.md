@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `failOnRelaxErrors()` in `@relax.js/core/testing`: makes every reported Relaxjs error throw, for use in a vitest setup file.
+- `npx @relax.js/core check` reports a block element inside a `<p>` and a table part outside a `<table>`, and scopes loops the way the browser renders them.
+- `t()` reports a key whose namespace is not loaded, once per namespace.
+- `Route.load`: imports the module defining `componentTagName` on the first visit to the route.
+- `@relax.js/core/jsx`: `h()` for `.tsx` files, building real DOM elements with props set as DOM properties, or as attributes when the name has a dash.
+
+### Fixed
+
+- A route declared with `component: SomeClass` threw in jsdom, which lacks `customElements.getName`, so it could not be tested with `mountRouting()`.
+
+### Changed
+
+- `@ContainerService` on a class extending `HTMLElement` throws.
+- `startRouting()` before `defineRoutes()` reports an error.
+- `fakeServer().on()` for a method and path already registered replaces the earlier response.
+- An `@Inject` field whose service is not registered reports the component tag, field and service.
+- `response.as()` on a failed response throws a message naming the request and status.
+- Docs register event classes in `GlobalEventHandlersEventMap`, and the Vite setup sets `verbatimModuleSyntax`.
+
 ## 2.3.1 (2026-10-13)
 
 ### Fixed

@@ -18,6 +18,7 @@ const entryPoints = {
     'utils/index': 'src/utils/index.ts',
     'di/index': 'src/di/index.ts',
     'collections/index': 'src/collections/Index.ts',
+    'jsx/index': 'src/jsx/index.ts',
     'testing/index': 'src/testing/index.ts',
     'check/index': 'src/check/index.ts',
     'prerender/index': 'src/prerender/index.ts',

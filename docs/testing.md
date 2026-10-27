@@ -69,6 +69,47 @@ Errors are suppressed while the capture is installed, so rendering continues and
 | `messages()` | The messages of those errors, for readable assertions. |
 | `restore()` | Puts the previously registered handler back. |
 
+## failOnRelaxErrors
+
+Makes every Relaxjs error throw where it is reported, so a test that never reads the errors fails instead of passing on a blank element.
+
+`captureRelaxErrors` only helps in the tests that remember to install it. This test passes, because the paragraph exists and nobody looked at why it is empty:
+
+```typescript
+it('shows_the_user_name', () => {
+    const { content, render } = compileTemplate('<p>{{user.naem}}</p>');
+    render({ user: { name: 'Alice' } });
+
+    expect(content.querySelector('p')).not.toBeNull();
+});
+```
+
+Install `failOnRelaxErrors` for every test from a setup file, and the `render()` call above throws with the unresolved expression in the message:
+
+```typescript
+// vitest.setup.ts
+import { beforeEach } from 'vitest';
+import { failOnRelaxErrors } from '@relax.js/core/testing';
+
+beforeEach(() => {
+    failOnRelaxErrors();
+});
+```
+
+```typescript
+// vitest.config.ts
+export default defineConfig({
+    test: {
+        environment: 'jsdom',
+        setupFiles: ['./vitest.setup.ts'],
+    },
+});
+```
+
+A test that expects an error still uses `captureRelaxErrors()`. It takes over while installed and hands back to the throwing handler on `restore()`. An error reported outside the test's call stack, such as in a `setTimeout` or an event listener, throws there and vitest reports it as an unhandled error, which fails the run.
+
+Do not reset the handler with `onError(null)` in tests that rely on this; restore what you installed instead. `failOnRelaxErrors()` returns `{ restore() }` for using it in a single file.
+
 ## mountRouting
 
 Registers routes and puts `<r-route-target>` elements in the document, so a test navigates the way the application does and gets the rendered component back.
@@ -128,13 +169,22 @@ try {
 
 Paths are matched without the query string and include the configured base URL, since that is what a server sees. The body is serialized as JSON; a function body is called with the request, which is how a POST answers with what it was sent.
 
+Registering the same method and path again replaces the earlier response. Set up the common responses in `beforeEach` and override one in the test that needs a failure:
+
+```typescript
+it('shows_the_conflict_when_someone_else_saved_first', async () => {
+    server.on('PUT', '/api/users/42', 'Changed by someone else', 409);
+    // ...
+});
+```
+
 A request nothing was registered for gets a 404 whose body names the registered routes, and is recorded like any other. An unexpected call therefore shows up in `requests` and in the component's error state rather than hanging or reaching the network.
 
 Only requests made through the http module are intercepted. A component calling `fetch` directly is outside this seam.
 
 | Member | Description |
 |--------|-------------|
-| `on(method, path, body?, status?)` | Registers a response. Returns the server, so calls chain. |
+| `on(method, path, body?, status?)` | Registers a response, replacing any earlier one for the same method and path. Returns the server, so calls chain. |
 | `requests` | Every request received, in order. Each has `method`, `url`, `path`, `query`, `headers`, `body` and `json()`. |
 | `restore()` | Puts the real fetch back. |
 

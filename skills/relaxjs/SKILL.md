@@ -24,24 +24,25 @@ through a shared parent or a broker, never through delegates threaded down the t
 Failures are reported, not thrown. A template that cannot resolve an expression renders empty and
 reports. Reported errors collect in `window.relaxErrors` and print with
 `window.relaxDebug = { errors: true }`; in a test, `captureRelaxErrors()` turns them into
-assertions.
+assertions, and `failOnRelaxErrors()` in the vitest setup file fails every test that ignores them.
 
 ## Where to go
 
-- **relaxjs-templates**: `compileTemplate` and `html`, loops, conditionals, pipes, `r-<event>`
+- **relaxjs-templates**: `compileTemplate`, TSX and `html`, loops, conditionals, pipes, `r-<event>`
   handlers, and why a `render()` sometimes changes nothing
 - **relaxjs-forms**: `FormValidator`, `readData`/`setFormData`, form-associated custom elements
 - **relaxjs-routing**: routes, `<r-route-target>`, route parameters, targets that never render
 - **relaxjs-services**: dependency injection and the HTTP, WebSocket and SSE clients
-- **relaxjs-testing**: `mount()`, `flush()`, `captureRelaxErrors()`, `mountRouting()`, `fakeServer()`, and the debug traces
+- **relaxjs-testing**: `mount()`, `flush()`, `captureRelaxErrors()`, `failOnRelaxErrors()`, `mountRouting()`, `fakeServer()`, and the debug traces
 - **relaxjs-setup**: startup order in `main.ts`, i18n loading, build configuration
 
 ## Events
 
 Create an explicit class extending `Event`, put the data on it as properties, and register it in
-the event map of whatever you listen on so `addEventListener` infers the type:
-`HTMLElementEventMap` for elements, `DocumentEventMap` for `document`, `WindowEventMap` for
-`window`. Do not use `CustomEvent`.
+`GlobalEventHandlersEventMap` so `addEventListener` infers the type on elements, `document` and
+`window` alike. `HTMLElementEventMap`, `DocumentEventMap` and `WindowEventMap` all extend it; an
+event registered in only one of those is a type error when listened for on another. Do not use
+`CustomEvent`.
 
 ```typescript
 export class IssueSelectedEvent extends Event {
@@ -53,7 +54,7 @@ export class IssueSelectedEvent extends Event {
 }
 
 declare global {
-    interface HTMLElementEventMap {
+    interface GlobalEventHandlersEventMap {
         [IssueSelectedEvent.type]: IssueSelectedEvent;
     }
 }

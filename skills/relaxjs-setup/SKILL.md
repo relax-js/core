@@ -6,7 +6,10 @@ description: Starting and building a @relax.js/core application - the order of m
 # Starting a Relaxjs app
 
 Three subsystems have to start in order: dependency injection, i18n, then routing. Getting it
-wrong produces undefined services and untranslated text, and neither one reports a cause.
+wrong produces undefined services, untranslated text or a blank page. Each is reported through
+`onError` with the cause (`<tag> was created before its service was registered`,
+`the 'shop' translations are not loaded`, `startRouting() was called before defineRoutes()`), so
+read `window.relaxErrors` before guessing.
 
 ```typescript
 // 1. Services first. @ContainerService registers as an import side effect.
@@ -32,6 +35,9 @@ bootstrap();
 A custom element is constructed the moment its tag is defined **and** the tag is in the DOM. If a
 component import runs before a service import, and that component's tag sits in `index.html`, its
 `@Inject` fields resolve to `undefined`.
+
+A page loaded with the route's `load: () => import(...)` is not imported in `main.ts`. Its module
+imports its own services, which then run before the page is defined.
 
 ## index.html holds the target, not the page
 
@@ -60,6 +66,12 @@ validation messages, `r-pipes` for the locale-aware pipes.
 
 Decorators need the right TypeScript and Vite configuration, and Vitest inherits it from Vite.
 Everything in `import.meta.env` ends up in the public bundle, so no secrets there.
+
+Set `"verbatimModuleSyntax": true` in `tsconfig.json`. Without it, `import { ProfilePage }` used
+only as a type (`navigate<ProfilePage>()`) is removed by the bundler, the module never runs, and
+`customElements.define` never happens. With it, only `import type` is removed.
+
+For TSX, add `"jsx": "react"` and `"jsxFactory": "h"`; see the **relaxjs-templates** skill.
 
 Organize `src/` by feature. Avoid a `utils/` dump folder: a helper shared by two features moves to
 `src/shared/` with a clear filename.

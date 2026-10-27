@@ -156,7 +156,8 @@ class OrderService {
 ## Using Services in Web Components
 
 Web components use `@Inject` to access services. Do not use `@ContainerService` on
-components since the browser creates them with zero constructor arguments.
+components since the browser creates them with zero constructor arguments. Putting it on a class
+that extends `HTMLElement` throws when the class is defined.
 
 ### Property Injection with @Inject
 
@@ -195,7 +196,8 @@ document.createElement('user-panel');
 
 Register all services before defining custom elements. Services
 decorated with `@ContainerService` register themselves when imported,
-so import those modules first.
+so import those modules first. A component created before its service is
+registered reports an error naming the tag, the field and the service.
 
 ```typescript
 // main.ts - application entry point

@@ -132,7 +132,7 @@ export function printRoutes() {
  * Call this at application startup before routing begins.
  *
  * @param appRoutes - Array of route configurations
- * @throws Error if referenced components are not registered
+ * @throws Error if a referenced component is not registered and its route has no `load`
  *
  * @example
  * const routes: Route[] = [
@@ -159,15 +159,21 @@ export function defineRoutes(appRoutes: Route[]) {
 
     var errs: string[] = [];
     appRoutes.forEach((route) => {
+        if (route.load && !route.componentTagName) {
+            errs.push(
+                `Route '${route.name}' has load() but no componentTagName, so the router cannot tell which element the loaded module defines. Add componentTagName.`
+            );
+        }
         if (
             route.componentTagName &&
+            !route.load &&
             !customElements.get(route.componentTagName)
         ) {
             errs.push(
                 `Component with tagName '${route.componentTagName}' is not defined in customElements.`
             );
         }
-        if (route.component && !customElements.getName(route.component)) {
+        if (route.component && customElements.getName && !customElements.getName(route.component)) {
             errs.push(
                 `Component '${route.component.name}' is not defined in customElements. Used in route '${JSON.stringify(route)}'.`
             );
@@ -207,6 +213,16 @@ export function defineRoutes(appRoutes: Route[]) {
  * }
  */
 export function startRouting() {
+    if (internalRoutes.length === 0) {
+        const error = reportError(
+            'startRouting() was called before defineRoutes(), so there are no routes to match ' +
+                'and nothing renders. Call defineRoutes(routes) first.',
+            { url: window.location.pathname }
+        );
+        if (error) throw error;
+        return;
+    }
+
     if (getCurrentLayout() == '') {
         const path = window.location.pathname;
         const match = path.match(/\/([^\/]+)\.html$/);

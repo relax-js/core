@@ -104,9 +104,36 @@ export interface RegistrationOptions {
 export function Inject<T extends object>(typeOrKey: Constructor<T> | string) {
     return (_: undefined, context: ClassFieldDecoratorContext) => {
         return function(this: any) {
+            if (!serviceCollection.tryGet(typeOrKey)) {
+                reportUnregisteredInjection(this, String(context.name), typeOrKey);
+                return undefined as unknown as T;
+            }
             return container.resolve(typeOrKey);
         };
     };
+}
+
+/**
+ * Explains an `@Inject` field that cannot be filled. For a component the cause is nearly always
+ * startup order: the element was constructed (often by the parser, from a tag already in
+ * `index.html`) before the module that registers the service had been imported.
+ */
+function reportUnregisteredInjection(owner: object, field: string, typeOrKey: Constructor | string) {
+    const service = typeof typeOrKey === 'string' ? typeOrKey : typeOrKey.name;
+    const className = owner.constructor.name;
+    const isComponent = typeof HTMLElement !== 'undefined' && owner instanceof HTMLElement;
+    const message = isComponent
+        ? `<${(owner as HTMLElement).localName}> was created before its service was registered, so ` +
+          `${className}.${field} cannot be injected: '${service}' is not registered. Services register ` +
+          `when their module is imported, so import the module that registers '${service}' before the ` +
+          `one that defines ${className}, and keep page components out of index.html so they are ` +
+          `created after startup.`
+        : `${className}.${field} cannot be injected: '${service}' is not registered. Register it with ` +
+          `@ContainerService or serviceCollection.register(), and import that module before creating ` +
+          `${className}.`;
+
+    const error = reportError(message, { service, owner: className, field });
+    if (error) throw error;
 }
 
 // Temporary collector of property injections - cleared after registration
@@ -148,6 +175,18 @@ export function ContainerService<T extends object>(
     options?: RegistrationOptions
 ) {
     return (target: Constructor<T>) => {
+        if (typeof HTMLElement !== 'undefined' && target.prototype instanceof HTMLElement) {
+            const error = reportError(
+                `@ContainerService cannot be used on the component ${target.name}. The browser ` +
+                    'creates custom elements without constructor arguments, so nothing can be ' +
+                    'injected through the constructor. Use @Inject on a field of the component ' +
+                    'instead, and put @ContainerService on the services it uses.',
+                { component: target.name }
+            );
+            if (error) throw error;
+            return;
+        }
+
         const opts = options ?? {inject: []};
 
         if (opts.key) {

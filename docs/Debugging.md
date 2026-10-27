@@ -49,6 +49,8 @@ expect(captured.messages()).toEqual([]);
 captured.restore();
 ```
 
+To stop a test from passing on a blank element because it never looked, install [`failOnRelaxErrors()`](testing.md#failonrelaxerrors) in the vitest setup file. Every reported error then throws where it happens.
+
 **The back button behaves oddly after a layout switch.** Use `routing`. Each target owns its history, and that history is set aside and restored when a target disconnects and reconnects. The trace says whether a target got a restored history or a fresh one.
 
 ## Errors that nobody handled

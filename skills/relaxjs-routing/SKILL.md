@@ -15,8 +15,12 @@ startRouting();         // last thing in bootstrap
 
 `startRouting()` before `defineRoutes()` renders a blank page.
 
-The route's component must already be registered with `customElements.define`, or navigation
-fails with `RouteError: CustomElement has not been registered`.
+A route names its page with `component: ProfilePage` (the class, imported at startup) or
+`componentTagName: 'profile-page'`. A tag name alone must already be defined when
+`defineRoutes()` runs, or it throws. To keep a page out of the startup bundle, add
+`load: () => import('./pages/ProfilePage')`: the first visit imports it, and the page's own
+service imports run before it constructs. Reference the class elsewhere with `import type` only,
+or the bundler keeps it in the startup bundle.
 
 ## Path parameters
 

@@ -1,6 +1,6 @@
 {
     "name": "@relax.js/core",
-    "version": "2.3.1",
+    "version": "2.4.0",
     "description": "Ship faster with less code. Web Component library with routing, forms, DI, templating, and i18n. No virtual DOM, no build magic, no surprise re-renders.",
     "main": "./dist/index.mjs",
     "module": "./dist/index.mjs",
@@ -73,6 +73,10 @@
         "./collections": {
             "types": "./dist/collections/Index.d.ts",
             "import": "./dist/collections/index.mjs"
+        },
+        "./jsx": {
+            "types": "./dist/jsx/index.d.ts",
+            "import": "./dist/jsx/index.mjs"
         },
         "./testing": {
             "types": "./dist/testing/index.d.ts",

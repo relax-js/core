@@ -217,6 +217,22 @@ describe('checkProgram', () => {
         });
     });
 
+    describe('markup the browser reshapes', () => {
+        const file = 'markup.ts';
+
+        it('a_block_element_inside_a_paragraph_is_reported_where_it_opens', () => {
+            expectFinding(file, '<div>{{u.name}}', '<div> closes the open <p>');
+        });
+
+        it('a_loop_alias_is_out_of_scope_after_the_browser_closed_its_paragraph', () => {
+            expectFinding(file, 'u.name', 'Cannot resolve "u.name"');
+        });
+
+        it('a_table_row_outside_a_table_is_reported', () => {
+            expectFinding(file, '<tr loop', '<tr> outside a <table>');
+        });
+    });
+
     describe('html tag', () => {
         const file = 'htmlTag.ts';
 

@@ -1,9 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { flush, mount, captureRelaxErrors, mountRouting, fakeServer } from '../../src/testing';
+import {
+    flush,
+    mount,
+    captureRelaxErrors,
+    failOnRelaxErrors,
+    mountRouting,
+    fakeServer,
+} from '../../src/testing';
 import type { RoutingHarness, FakeServer } from '../../src/testing';
 import { onError, reportError } from '../../src/errors';
 import { compileTemplate } from '../../src/html/template';
-import { configure, get, post, del } from '../../src/http/http';
+import { configure, get, post, put, del } from '../../src/http/http';
 import { GuardResult, RouteGuardError, type LoadRoute, type Routable } from '../../src/routing';
 
 class SlowRoutedPage extends HTMLElement implements LoadRoute<{ id: string }> {
@@ -151,6 +158,34 @@ describe('testing helpers', () => {
         });
     });
 
+    describe('failOnRelaxErrors', () => {
+        it('fails_a_test_that_renders_a_mistyped_expression_and_never_reads_the_errors', () => {
+            const loud = failOnRelaxErrors();
+            try {
+                const { render } = compileTemplate('<p>{{user.naem}}</p>');
+
+                expect(() => render({ user: { name: 'Alice' } })).toThrow('user.naem');
+            } finally {
+                loud.restore();
+            }
+        });
+
+        it('lets_a_test_that_expects_the_error_capture_it_instead', () => {
+            const loud = failOnRelaxErrors();
+            try {
+                const captured = captureRelaxErrors();
+                const { render } = compileTemplate('<p>{{user.naem}}</p>');
+                render({ user: { name: 'Alice' } });
+                captured.restore();
+
+                expect(captured.messages()[0]).toContain('user.naem');
+                expect(() => reportError('after capture', {})).toThrow('after capture');
+            } finally {
+                loud.restore();
+            }
+        });
+    });
+
     describe('mountRouting', () => {
         let routing: RoutingHarness | undefined;
 
@@ -169,6 +204,15 @@ describe('testing helpers', () => {
             expect(page.loadedId).toBe('42');
             expect(page.routeData).toEqual({ id: '42' });
             expect(page.isConnected).toBe(true);
+        });
+
+        it('route_declared_with_the_component_class_renders_in_jsdom_which_lacks_getName', async () => {
+            routing = mountRouting([{ name: 'plain', path: '/plain/:id', component: PlainRoutedPage }]);
+
+            const page = await routing.navigate<PlainRoutedPage>('/plain/7');
+
+            expect(page).toBeInstanceOf(PlainRoutedPage);
+            expect(page.routeData).toEqual({ id: '7' });
         });
 
         it('navigate_accepts_a_url_like_the_application_does', async () => {
@@ -318,6 +362,16 @@ describe('testing helpers', () => {
             expect(response.body).toContain('GET /api/orders');
             expect(response.body).toContain('GET /api/users');
             expect(server.requests.map((r) => r.path)).toEqual(['/api/orders']);
+        });
+
+        it('a_later_registration_for_the_same_route_replaces_the_earlier_one', async () => {
+            server.on('PUT', '/api/users/1', { saved: true });
+            server.on('PUT', '/api/users/1', 'conflict', 409);
+
+            const response = await put('/users/1', '{}');
+
+            expect(response.statusCode).toBe(409);
+            expect(response.body).toBe('conflict');
         });
 
         it('a_204_has_no_body_to_parse', async () => {

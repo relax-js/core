@@ -61,22 +61,10 @@ export class RouteTarget extends HTMLElement {
     }
 
     private async loadComponent(evt: NavigateRouteEvent) {
-        const tagName = evt.route.componentTagName
-            ?? (evt.route.component ? customElements.getName(evt.route.component) : null);
-
-        if (!tagName) {
-            const error = reportError('Failed to find component for route', {
-                route: evt.route.name,
-                componentTagName: evt.route.componentTagName,
-                component: evt.route.component?.name,
-                routeData: evt.routeData,
-            });
-            if (error) throw error;
+        const element = await this.createComponent(evt);
+        if (!element) {
             return;
         }
-
-        await this.whenComponentRegistered(tagName, evt);
-        const element = document.createElement(tagName);
 
         await this.applyRouteData(element, evt.routeData);
 
@@ -89,6 +77,72 @@ export class RouteTarget extends HTMLElement {
         }
 
         await this.showPage(element);
+    }
+
+    /**
+     * Creates the route's page, or returns undefined when it cannot be created.
+     *
+     * A route that names its class constructs it with `new`, which needs no tag lookup. That
+     * keeps such routes working in jsdom, which lacks `customElements.getName`.
+     */
+    private async createComponent(evt: NavigateRouteEvent): Promise<HTMLElement | undefined> {
+        const tagName = evt.route.componentTagName;
+        if (tagName) {
+            if (evt.route.load && !customElements.get(tagName)) {
+                if (!(await this.loadModule(evt.route.load, tagName, evt))) {
+                    return undefined;
+                }
+            } else {
+                await this.whenComponentRegistered(tagName, evt);
+            }
+            return document.createElement(tagName);
+        }
+
+        if (evt.route.component) {
+            return new evt.route.component();
+        }
+
+        const error = reportError('Failed to find component for route', {
+            route: evt.route.name,
+            routeData: evt.routeData,
+        });
+        if (error) throw error;
+        return undefined;
+    }
+
+    /**
+     * Runs the route's `load()` and checks that it defined the tag.
+     *
+     * Unlike waiting on `customElements.whenDefined`, the router knows when the import is done,
+     * so a module that defines another tag (or none) is reported at once instead of after a
+     * timeout. Returns false when the page cannot be created.
+     */
+    private async loadModule(
+        load: () => Promise<unknown>,
+        tagName: string,
+        evt: NavigateRouteEvent
+    ): Promise<boolean> {
+        try {
+            await load();
+        } catch (cause) {
+            const error = reportError(
+                `Route '${evt.route.name}' could not load <${tagName}>: its load() failed.`,
+                { route: evt.route.name, componentTagName: tagName, cause }
+            );
+            if (error) throw error;
+            return false;
+        }
+
+        if (customElements.get(tagName)) {
+            return true;
+        }
+
+        const error = reportError(
+            `Route '${evt.route.name}' ran load(), but <${tagName}> is still not defined. Check that the loaded module calls customElements.define('${tagName}', ...) with the same tag name.`,
+            { route: evt.route.name, componentTagName: tagName }
+        );
+        if (error) throw error;
+        return false;
     }
 
     /**
